@@ -14,8 +14,21 @@
     "windows": [
       {
         "title": "countdown",
-        "width": 800,
-        "height": 600
+        "x": 100,
+        "y": 100,
+        "center": true,
+        "width": 128,
+        "height": 48,
+        "url": "index.html",
+        "theme": "Dark",
+        "titleBarStyle": "Transparent",
+        "acceptFirstMouse": true,
+        "transparent": true,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": true,
+        "fullscreen": false
       }
     ],
     "security": {

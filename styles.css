@@ -1,4 +1,4 @@
-.logo.sycamore:hover {
+/* .logo.sycamore:hover {
   filter: drop-shadow(0 0 2em #f8b94c);
 }
 :root {
@@ -109,4 +109,45 @@ button {
   button:active {
     background-color: #0f0f0f69;
   }
+} */
+
+html, body {
+  /* 確保 body 填滿整個視窗，且背景透明 */
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: transparent; /* HTML/Body 背景保持透明 */
+  overflow: hidden; /* 避免出現不必要的滾動條 */
+  font-family: sans-serif;
+}
+
+/* Sycamore 通常會掛載到 body 或一個 #app div，這裡確保掛載點填滿空間 */
+/* 如果你的 index.html 有 <div id="app"></div>，則使用 #app */
+/* 如果直接掛載到 body，這個選擇器可能不是必需的 */
+#app, .sycamore-app-container /* 檢查你的 index.html 或 Sycamore 掛載方式 */ {
+  height: 100%;
+  display: flex; /* 使用 flex 來置中內容 */
+  justify-content: center;
+  align-items: center;
+}
+
+/* 計時器容器的樣式 */
+.timer-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center; /* 水平置中 */
+  align-items: center;    /* 垂直置中 */
+  /* *** 設定半透明黑色背景，實現 50% 不透明度效果 *** */
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 8px; /* (可選) 加個圓角 */
+  color: white; /* 文字顏色設為白色以提高對比度 */
+}
+
+/* 計時器文字的樣式 */
+.timer-display {
+  font-size: 1.2em; /* (可自行調整) 較大的字體 */
+  font-family: 'Courier New', Courier, monospace; /* 等寬字體，讓數字不跳動 */
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7); /* (可選) 加點文字陰影增加可讀性 */
+  margin: 0; /* 移除段落的預設邊距 */
 }
