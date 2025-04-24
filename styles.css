@@ -141,12 +141,12 @@ html, body {
   /* *** 設定半透明黑色背景，實現 50% 不透明度效果 *** */
   background-color: rgba(0, 0, 0, 0.5);
   border-radius: 8px; /* (可選) 加個圓角 */
-  color: white; /* 文字顏色設為白色以提高對比度 */
+  color: rgba(255, 255, 255, 0.5); /* 文字顏色設為白色以提高對比度 */
 }
 
 /* 計時器文字的樣式 */
 .timer-display {
-  font-size: 1.2em; /* (可自行調整) 較大的字體 */
+  font-size: 1.5em; /* (可自行調整) 較大的字體 */
   font-family: 'Courier New', Courier, monospace; /* 等寬字體，讓數字不跳動 */
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7); /* (可選) 加點文字陰影增加可讀性 */
   margin: 0; /* 移除段落的預設邊距 */
