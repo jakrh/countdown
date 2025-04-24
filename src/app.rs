@@ -41,7 +41,7 @@ pub fn App() -> View {
             is_blinking.set(true);
             blink_visible.set(true);
             let blink_vis = blink_visible.clone();
-            let timer = Interval::new(500, move || {
+            let timer = Interval::new(200, move || {
                 blink_vis.set(!blink_vis.get());
             });
             *blink_handle.borrow_mut() = Some(timer);
