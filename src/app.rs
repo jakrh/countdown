@@ -9,7 +9,7 @@ use sycamore::prelude::*;
 pub fn App() -> View {
     // --- 倒數計時器狀態 ---
     // 設定初始倒數時間 (例如：5 分鐘 = 300 秒)
-    const INITIAL_SECONDS: u32 = 8;
+    const INITIAL_SECONDS: u32 = 25 * 60;
     let remaining_seconds = create_signal(INITIAL_SECONDS);
 
     // 用於儲存計時器 Interval 的 handle，以便之後可以取消它
@@ -128,33 +128,36 @@ pub fn App() -> View {
         div(class="timer-container") {
             p(
                 class="timer-display",
-                style=move || if is_blinking_clone.get() && !blink_visible_clone.get() {
-                    "visibility: hidden"
-                } else {
-                    "visibility: visible"
+                style=move || {
+                    let base_style = "cursor: pointer; user-select: none;";  // 添加滑鼠指針和防止文字被選取
+                    if is_blinking_clone.get() && !blink_visible_clone.get() {
+                        format!("{} visibility: hidden", base_style)
+                    } else {
+                        format!("{} visibility: visible", base_style)
+                    }
+                },
+                on:click=move |_| {
+                    // 重置時取消閃爍效果
+                    if is_blinking_clone.get() {
+                        is_blinking_clone.set(false);
+                        blink_visible_clone.set(true);
+                        if let Some(handle) = blink_handle_clone.borrow_mut().take() {
+                            drop(handle);
+                        }
+                    }
+
+                    remaining_seconds_clone.set(INITIAL_SECONDS);
+                    start_timer(
+                        interval_handle_clone.clone(),
+                        remaining_seconds_clone.clone(),
+                        blink_handle_clone.clone(),
+                        is_blinking_clone.clone(),
+                        blink_visible_clone.clone(),
+                    );
                 }
             ) {
                 (formatted_time)
             }
-            button(on:click=move |_| {
-                // 重置時取消閃爍效果
-                if is_blinking_clone.get() {
-                    is_blinking_clone.set(false);
-                    blink_visible_clone.set(true);
-                    if let Some(handle) = blink_handle_clone.borrow_mut().take() {
-                        drop(handle);
-                    }
-                }
-
-                remaining_seconds_clone.set(INITIAL_SECONDS);
-                start_timer(
-                    interval_handle_clone.clone(),
-                    remaining_seconds_clone.clone(),
-                    blink_handle_clone.clone(),
-                    is_blinking_clone.clone(),
-                    blink_visible_clone.clone(),
-                );
-            }) { "Reset" }
         }
     }
 }
