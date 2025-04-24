@@ -129,11 +129,21 @@ pub fn App() -> View {
             p(
                 class="timer-display",
                 style=move || {
-                    let base_style = "cursor: pointer; user-select: none;";  // 添加滑鼠指針和防止文字被選取
-                    if is_blinking_clone.get() && !blink_visible_clone.get() {
-                        format!("{} visibility: hidden", base_style)
+                    // 添加滑鼠指針和防止文字被選取
+                    let base_style = "cursor: pointer; user-select: none;";
+
+                    // 添加顏色樣式 - 當閃爍時（計時結束）顯示紅色文字
+                    let color_style = if is_blinking_clone.get() {
+                        "color: red;"
                     } else {
-                        format!("{} visibility: visible", base_style)
+                        ""  // 預設顏色
+                    };
+
+                    // 結合可見性樣式
+                    if is_blinking_clone.get() && !blink_visible_clone.get() {
+                        format!("{} {} visibility: hidden", base_style, color_style)
+                    } else {
+                        format!("{} {} visibility: visible", base_style, color_style)
                     }
                 },
                 on:click=move |_| {
