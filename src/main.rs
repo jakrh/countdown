@@ -1,4 +1,11 @@
 mod app;
+mod config;
+mod event_logic;
+mod style_utils;
+mod time_format;
+mod timer_logic;
+mod timer_provider;
+mod timer_service;
 
 use app::App;
 
