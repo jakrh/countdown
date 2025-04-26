@@ -4,13 +4,13 @@ pub fn compute_timer_style(is_blinking: bool, is_visible: bool) -> String {
     let base = "cursor: pointer; user-select: none;";
     // Color: red when blinking
     let color = if is_blinking { "color: red;" } else { "" };
-    // Visibility: hidden only during blink off
-    let visibility = if is_blinking && !is_visible {
-        "visibility: hidden;"
+    // Opacity: invisible only during blink off, but still clickable
+    let opacity = if is_blinking && !is_visible {
+        "opacity: 0;" // Invisible
     } else {
-        "visibility: visible;"
+        "opacity: 1;" // Visible
     };
-    format!("{} {} {}", base, color, visibility)
+    format!("{} {} {}", base, color, opacity)
 }
 
 #[cfg(test)]
@@ -22,20 +22,20 @@ mod tests {
         let style = compute_timer_style(false, true);
         assert!(style.contains("cursor: pointer;"));
         assert!(style.contains("user-select: none;"));
-        assert!(style.contains("visibility: visible;"));
+        assert!(style.contains("opacity: 1;"));
     }
 
     #[test]
     fn test_blink_visible() {
         let style = compute_timer_style(true, true);
         assert!(style.contains("color: red;"));
-        assert!(style.contains("visibility: visible;"));
+        assert!(style.contains("opacity: 1;"));
     }
 
     #[test]
     fn test_blink_hidden() {
         let style = compute_timer_style(true, false);
         assert!(style.contains("color: red;"));
-        assert!(style.contains("visibility: hidden;"));
+        assert!(style.contains("opacity: 0;"));
     }
 }
