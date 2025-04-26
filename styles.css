@@ -1,160 +1,47 @@
-/* .logo.sycamore:hover {
-  filter: drop-shadow(0 0 2em #f8b94c);
-}
-:root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
-
-  color: #0f0f0f;
-  background-color: #f6f6f6;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
-}
-
-.container {
-  margin: 0;
-  padding-top: 10vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: 0.75s;
-}
-
-.logo.tauri:hover {
-  filter: drop-shadow(0 0 2em #24c8db);
-}
-
-.row {
-  display: flex;
-  justify-content: center;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-
-a:hover {
-  color: #535bf2;
-}
-
-h1 {
-  text-align: center;
-}
-
-input,
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  color: #0f0f0f;
-  background-color: #ffffff;
-  transition: border-color 0.25s;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
-}
-
-button {
-  cursor: pointer;
-}
-
-button:hover {
-  border-color: #396cd8;
-}
-button:active {
-  border-color: #396cd8;
-  background-color: #e8e8e8;
-}
-
-input,
-button {
-  outline: none;
-}
-
-#greet-input {
-  margin-right: 5px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color: #f6f6f6;
-    background-color: #2f2f2f;
-  }
-
-  a:hover {
-    color: #24c8db;
-  }
-
-  input,
-  button {
-    color: #ffffff;
-    background-color: #0f0f0f98;
-  }
-  button:active {
-    background-color: #0f0f0f69;
-  }
-} */
-
 html, body {
-  /* 確保 body 填滿整個視窗，且背景透明 */
+  /* Ensure the body fills the entire viewport and has a transparent background */
   height: 100%;
   margin: 0;
   padding: 0;
-  background-color: transparent; /* HTML/Body 背景保持透明 */
-  overflow: hidden; /* 避免出現不必要的滾動條 */
+  background-color: transparent; /* Keep HTML/Body background transparent */
+  overflow: hidden; /* Prevent unnecessary scrollbars */
   font-family: sans-serif;
 }
 
-/* Sycamore 通常會掛載到 body 或一個 #app div，這裡確保掛載點填滿空間 */
-/* 如果你的 index.html 有 <div id="app"></div>，則使用 #app */
-/* 如果直接掛載到 body，這個選擇器可能不是必需的 */
-#app, .sycamore-app-container /* 檢查你的 index.html 或 Sycamore 掛載方式 */ {
+/* Sycamore typically mounts to the body or a #app div; ensure the mount point fills the space */
+/* If your index.html has <div id=\"app\"></div>, use #app */
+/* If mounting directly to the body, this selector may not be necessary */
+#app, .sycamore-app-container /* Check your index.html or Sycamore mounting method */ {
   height: 100%;
-  display: flex; /* 使用 flex 來置中內容 */
+  display: flex; /* Use flex to center the content */
   justify-content: center;
   align-items: center;
 }
 
-/* 計時器容器的樣式 */
+/* Styles for the timer container */
 .timer-container {
   width: 100%;
   height: 100%;
   display: flex;
-  justify-content: center; /* 水平置中 */
-  align-items: center;    /* 垂直置中 */
-  /* *** 設定半透明黑色背景，實現 20% 不透明度效果 *** */
+  justify-content: center; /* Center horizontally */
+  align-items: center;    /* Center vertically */
+  /* *** Set a semi-transparent black background with 20% opacity *** */
   background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 8px; /* (可選) 加個圓角 */
-  color: rgba(255, 255, 255, 0.8); /* 文字顏色設為白色以提高對比度 */
-  -webkit-app-region: drag; /* 允許拖曳整個計時器容器 */
+  border-radius: 8px; /* (optional) Add rounded corners */
+  color: rgba(255, 255, 255, 0.8); /* Set text color to white for better contrast */
+  -webkit-app-region: drag; /* Allow dragging the entire timer container */
 }
 
-/* 計時器文字的樣式 */
+/* Styles for the timer text */
 .timer-display {
-  font-size: 1.8em; /* (可自行調整) 較大的字體 */
-  font-weight: bold; /* 粗體字 */
-  font-family: 'Courier New', Courier, monospace; /* 等寬字體，讓數字不跳動 */
-  text-shadow: 
+  font-size: 1.8em; /* (adjustable) Larger font size */
+  font-weight: bold; /* Bold text */
+  font-family: 'Courier New', Courier, monospace; /* Monospace font to prevent number shifting */
+  text-shadow:
     0 0 5px black,
     0 0 5px black,
     0 0 5px black,
-    0 0 5px black; /* (可選) 加點文字陰影增加可讀性 */
-  margin: 0; /* 移除段落的預設邊距 */
-  -webkit-app-region: no-drag; /* 禁止拖曳計時器文字，讓使用者可以點擊它來控制計時器 */
+    0 0 5px black; /* (optional) Add text shadow for readability */
+  margin: 0; /* Remove default paragraph margins */
+  -webkit-app-region: no-drag; /* Disable dragging on the timer text so users can click it to control the timer */
 }
