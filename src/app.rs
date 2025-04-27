@@ -74,6 +74,10 @@ fn setup_pause_resume_listener(
                     );
                 }
             } else {
+                // Prevent pausing while blinking
+                if blinking.get() {
+                    return;
+                }
                 // Pause countdown
                 paused.set(true);
                 if let Some(mut h) = countdown_handle.borrow_mut().take() {

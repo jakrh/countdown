@@ -2,11 +2,11 @@
 pub fn compute_timer_style(is_blinking: bool, is_visible: bool, is_paused: bool) -> String {
     // Base style: pointer cursor and disable text selection
     let base: &str = "cursor: pointer; user-select: none;";
-    // Color: darkturquoise when paused, red when blinking, white otherwise
-    let color = if is_paused {
-        "color: darkturquoise;"
-    } else if is_blinking {
+    // Color: red when blinking, darkturquoise when paused, white otherwise
+    let color = if is_blinking {
         "color: red;"
+    } else if is_paused {
+        "color: darkturquoise;"
     } else {
         "color: white;"
     };
@@ -50,6 +50,13 @@ mod tests {
     fn test_paused_style() {
         let style = compute_timer_style(false, true, true);
         assert!(style.contains("color: darkturquoise;"));
+        assert!(style.contains("opacity: 1;"));
+    }
+
+    #[test]
+    fn test_pausing_in_blinking() {
+        let style = compute_timer_style(true, true, true);
+        assert!(style.contains("color: red;"));
         assert!(style.contains("opacity: 1;"));
     }
 }
