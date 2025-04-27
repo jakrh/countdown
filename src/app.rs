@@ -11,6 +11,83 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::KeyboardEvent;
 
+// Helper to handle click event and reset the timer
+fn handle_click_and_reset(
+    provider: Rc<dyn TimerProvider>,
+    countdown_handle: Rc<RefCell<Option<Box<dyn TimerHandle>>>>,
+    blink_handle: Rc<RefCell<Option<Box<dyn TimerHandle>>>>,
+    remaining_time: Signal<u32>,
+    blinking_signal: Signal<bool>,
+    visible_signal: Signal<bool>,
+) {
+    let result = handle_click(remaining_time.get(), blinking_signal.get());
+    remaining_time.set(result.reset_remaining);
+    if result.should_cancel_blink {
+        if let Some(mut handle) = blink_handle.borrow_mut().take() {
+            handle.cancel();
+        }
+    }
+    blinking_signal.set(result.is_blinking);
+    visible_signal.set(result.is_visible);
+    start_countdown_timer(
+        provider,
+        &countdown_handle,
+        &remaining_time,
+        &blink_handle,
+        &blinking_signal,
+        &visible_signal,
+    );
+}
+
+// Extracted function to setup pause/resume key handler
+fn setup_pause_resume_listener(
+    timer_provider: Rc<dyn TimerProvider>,
+    paused_signal: Signal<bool>,
+    countdown_handle: Rc<RefCell<Option<Box<dyn TimerHandle>>>>,
+    blink_handle: Rc<RefCell<Option<Box<dyn TimerHandle>>>>,
+    remaining_time: Signal<u32>,
+    blinking_signal: Signal<bool>,
+    visible_signal: Signal<bool>,
+) {
+    let window = web_sys::window().unwrap();
+    // Clone inside closure
+    let paused = paused_signal.clone();
+    let provider = timer_provider.clone();
+    let countdown_handle = countdown_handle.clone();
+    let blink_handle = blink_handle.clone();
+    let remaining_time = remaining_time.clone();
+    let blinking = blinking_signal.clone();
+    let visible = visible_signal.clone();
+    let closure = Closure::wrap(Box::new(move |event: KeyboardEvent| {
+        if event.key() == "p" {
+            if paused.get() {
+                // Resume countdown
+                paused.set(false);
+                if !blinking.get() {
+                    start_countdown_timer(
+                        provider.clone(),
+                        &countdown_handle,
+                        &remaining_time,
+                        &blink_handle,
+                        &blinking,
+                        &visible,
+                    );
+                }
+            } else {
+                // Pause countdown
+                paused.set(true);
+                if let Some(mut h) = countdown_handle.borrow_mut().take() {
+                    h.cancel();
+                }
+            }
+        }
+    }) as Box<dyn FnMut(_)>);
+    window
+        .add_event_listener_with_callback("keydown", closure.as_ref().unchecked_ref())
+        .unwrap();
+    closure.forget();
+}
+
 #[component]
 pub fn App() -> View {
     // instantiate timer provider as Rc<dyn TimerProvider> for sharing across closures
@@ -56,43 +133,16 @@ pub fn App() -> View {
             &is_blinking_signal_on_mount,
             &is_blink_visible_signal_on_mount,
         );
-        // Listen for 'p' key to toggle pause/resume
-        let paused_signal_on_keydown = is_paused.clone();
-        let provider_on_keydown = timer_provider_for_mount.clone();
-        let countdown_handle_on_keydown = countdown_timer_handle_on_mount.clone();
-        let blink_handle_on_keydown = blink_timer_handle_on_mount.clone();
-        let remaining_time_on_keydown = remaining_time_on_mount.clone();
-        let blinking_signal_on_keydown = is_blinking_signal_on_mount.clone();
-        let visible_signal_on_keydown = is_blink_visible_signal_on_mount.clone();
-        let key_closure = Closure::wrap(Box::new(move |event: KeyboardEvent| {
-            if event.key() == "p" {
-                if paused_signal_on_keydown.get() {
-                    // resume
-                    paused_signal_on_keydown.set(false);
-                    if !blinking_signal_on_keydown.get() {
-                        start_countdown_timer(
-                            provider_on_keydown.clone(),
-                            &countdown_handle_on_keydown,
-                            &remaining_time_on_keydown,
-                            &blink_handle_on_keydown,
-                            &blinking_signal_on_keydown,
-                            &visible_signal_on_keydown,
-                        );
-                    }
-                } else {
-                    // pause
-                    paused_signal_on_keydown.set(true);
-                    if let Some(mut h) = countdown_handle_on_keydown.borrow_mut().take() {
-                        h.cancel();
-                    }
-                }
-            }
-        }) as Box<dyn FnMut(_)>);
-        web_sys::window()
-            .unwrap()
-            .add_event_listener_with_callback("keydown", key_closure.as_ref().unchecked_ref())
-            .unwrap();
-        key_closure.forget();
+        // simplified pause/resume listener setup
+        setup_pause_resume_listener(
+            timer_provider_for_mount.clone(),
+            is_paused.clone(),
+            countdown_timer_handle_on_mount.clone(),
+            blink_timer_handle_on_mount.clone(),
+            remaining_time_on_mount.clone(),
+            is_blinking_signal_on_mount.clone(),
+            is_blink_visible_signal_on_mount.clone(),
+        );
     });
 
     // --- Cleanup timer ---
@@ -120,6 +170,26 @@ pub fn App() -> View {
     // Clone provider for click handler
     let timer_provider_click = timer_provider.clone();
 
+    // Named click handler using extracted helper
+    let click_handler = {
+        let provider = timer_provider_click.clone();
+        let countdown = ui_timer.clone();
+        let blink = ui_blink_timer.clone();
+        let time = ui_time.clone();
+        let blink_active = ui_blink_active.clone();
+        let blink_visible = ui_blink_visible.clone();
+        move |_| {
+            handle_click_and_reset(
+                provider.clone(),
+                countdown.clone(),
+                blink.clone(),
+                time.clone(),
+                blink_active.clone(),
+                blink_visible.clone(),
+            );
+        }
+    };
+
     view! {
         div(class="timer-container") {
             p(
@@ -129,31 +199,7 @@ pub fn App() -> View {
                     ui_blink_visible.get(),
                     ui_paused.get(),
                 ),
-                on:click=move |_| {
-                    // Handle click
-                    let result = handle_click(
-                        ui_time.get(),
-                        ui_blink_active.get(),
-                    );
-                    // Apply click result
-                    ui_time.set(result.reset_remaining);
-                    if result.should_cancel_blink {
-                        if let Some(mut handle) = ui_blink_timer.borrow_mut().take() {
-                            handle.cancel();
-                        }
-                    }
-                    ui_blink_active.set(result.is_blinking);
-                    ui_blink_visible.set(result.is_visible);
-                    // Restart countdown
-                    start_countdown_timer(
-                        timer_provider_click.clone(),
-                        &ui_timer,
-                        &ui_time,
-                        &ui_blink_timer,
-                        &ui_blink_active,
-                        &ui_blink_visible,
-                    );
-                }
+                on:click=click_handler
             ) {
                 (formatted_time)
             }
