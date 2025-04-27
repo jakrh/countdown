@@ -182,15 +182,19 @@ pub fn App() -> View {
         let time = ui_time.clone();
         let blink_active = ui_blink_active.clone();
         let blink_visible = ui_blink_visible.clone();
+        let paused = ui_paused.clone();
         move |_| {
-            handle_click_and_reset(
-                provider.clone(),
-                countdown.clone(),
-                blink.clone(),
-                time.clone(),
-                blink_active.clone(),
-                blink_visible.clone(),
-            );
+            // Handle click event and reset timer if not paused
+            if !paused.get() {
+                handle_click_and_reset(
+                    provider.clone(),
+                    countdown.clone(),
+                    blink.clone(),
+                    time.clone(),
+                    blink_active.clone(),
+                    blink_visible.clone(),
+                );
+            }
         }
     };
 
