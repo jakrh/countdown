@@ -1,5 +1,5 @@
 use crate::config::INITIAL_SECONDS;
-use crate::event_logic::handle_click;
+use crate::event_ui::{handle_click_and_reset, setup_pause_resume_listener};
 use crate::style_utils::compute_timer_style;
 use crate::time_format::format_time;
 use crate::timer_provider::{GlooTimerProvider, TimerHandle, TimerProvider};
@@ -7,90 +7,6 @@ use crate::timer_service::start_countdown_timer;
 use std::cell::RefCell;
 use std::rc::Rc;
 use sycamore::prelude::*;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
-use web_sys::KeyboardEvent;
-
-// Helper to handle click event and reset the timer
-fn handle_click_and_reset(
-    provider: Rc<dyn TimerProvider>,
-    countdown_handle: Rc<RefCell<Option<Box<dyn TimerHandle>>>>,
-    blink_handle: Rc<RefCell<Option<Box<dyn TimerHandle>>>>,
-    remaining_time: Signal<u32>,
-    blinking_signal: Signal<bool>,
-    visible_signal: Signal<bool>,
-) {
-    let result = handle_click(remaining_time.get(), blinking_signal.get());
-    remaining_time.set(result.reset_remaining);
-    if result.should_cancel_blink {
-        if let Some(mut handle) = blink_handle.borrow_mut().take() {
-            handle.cancel();
-        }
-    }
-    blinking_signal.set(result.is_blinking);
-    visible_signal.set(result.is_visible);
-    start_countdown_timer(
-        provider,
-        &countdown_handle,
-        &remaining_time,
-        &blink_handle,
-        &blinking_signal,
-        &visible_signal,
-    );
-}
-
-// Extracted function to setup pause/resume key handler
-fn setup_pause_resume_listener(
-    timer_provider: Rc<dyn TimerProvider>,
-    paused_signal: Signal<bool>,
-    countdown_handle: Rc<RefCell<Option<Box<dyn TimerHandle>>>>,
-    blink_handle: Rc<RefCell<Option<Box<dyn TimerHandle>>>>,
-    remaining_time: Signal<u32>,
-    blinking_signal: Signal<bool>,
-    visible_signal: Signal<bool>,
-) {
-    let window = web_sys::window().unwrap();
-    // Clone inside closure
-    let paused = paused_signal.clone();
-    let provider = timer_provider.clone();
-    let countdown_handle = countdown_handle.clone();
-    let blink_handle = blink_handle.clone();
-    let remaining_time = remaining_time.clone();
-    let blinking = blinking_signal.clone();
-    let visible = visible_signal.clone();
-    let closure = Closure::wrap(Box::new(move |event: KeyboardEvent| {
-        if event.key() == "p" {
-            if paused.get() {
-                // Resume countdown
-                paused.set(false);
-                if !blinking.get() {
-                    start_countdown_timer(
-                        provider.clone(),
-                        &countdown_handle,
-                        &remaining_time,
-                        &blink_handle,
-                        &blinking,
-                        &visible,
-                    );
-                }
-            } else {
-                // Prevent pausing while blinking
-                if blinking.get() {
-                    return;
-                }
-                // Pause countdown
-                paused.set(true);
-                if let Some(mut h) = countdown_handle.borrow_mut().take() {
-                    h.cancel();
-                }
-            }
-        }
-    }) as Box<dyn FnMut(_)>);
-    window
-        .add_event_listener_with_callback("keydown", closure.as_ref().unchecked_ref())
-        .unwrap();
-    closure.forget();
-}
 
 #[component]
 pub fn App() -> View {
