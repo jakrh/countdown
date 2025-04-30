@@ -2,6 +2,7 @@ mod app;
 mod config;
 mod event_logic;
 mod event_ui;
+mod storage;
 mod style_utils;
 mod time_format;
 mod timer_logic;

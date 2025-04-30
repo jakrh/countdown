@@ -1,4 +1,5 @@
 use crate::event_logic::{format_time_input, handle_click, parse_time_input};
+use crate::storage::save_remaining_seconds;
 use crate::time_format::format_time;
 use crate::timer_provider::{TimerHandle, TimerProvider};
 use crate::timer_service::start_countdown_timer;
@@ -214,6 +215,9 @@ pub fn setup_input_mode_listener(
                             // Also update reset time for next click reset
                             reset_time.set(Some(total_seconds));
                             input_mode.set(false);
+
+                            // Save the time setting to LocalStorage
+                            save_remaining_seconds(total_seconds);
 
                             // Cancel existing timers
                             let mut cancelled_handles = false;

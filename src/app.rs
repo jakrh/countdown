@@ -1,5 +1,5 @@
-use crate::config::INITIAL_SECONDS;
 use crate::event_ui::{create_key_handler, setup_input_mode_listener, setup_pause_resume_listener};
+use crate::storage::load_remaining_seconds;
 use crate::time_format::format_time;
 use crate::timer_provider::{GlooTimerProvider, TimerHandle, TimerProvider};
 use crate::timer_service::start_countdown_timer;
@@ -14,12 +14,16 @@ pub fn App() -> View {
     let timer_provider: Rc<dyn TimerProvider> = Rc::new(GlooTimerProvider);
     // Clone provider for mount event to avoid moving original
     let timer_provider_for_mount = timer_provider.clone();
-    // --- Countdown timer state ---
-    // Remaining time signal (seconds)
-    let remaining_time = create_signal(INITIAL_SECONDS);
 
-    // Custom reset time signal (None = use INITIAL_SECONDS)
-    let reset_time = create_signal(None::<u32>);
+    // Load remaining time from LocalStorage or use default
+    let saved_remaining_seconds = load_remaining_seconds();
+
+    // --- Countdown timer state ---
+    // Remaining time signal (seconds), using time loaded from LocalStorage
+    let remaining_time = create_signal(saved_remaining_seconds);
+
+    // Custom reset time signal, initialized with time loaded from LocalStorage
+    let reset_time = create_signal(Some(saved_remaining_seconds));
 
     // Handle for the main countdown timer
     let countdown_timer_handle: Rc<RefCell<Option<Box<dyn TimerHandle>>>> =
@@ -41,8 +45,8 @@ pub fn App() -> View {
     // --- Input mode ---
     // true = entering time, false = countdown
     let input_mode = create_signal(false);
-    // user input string ("mm:ss")
-    let input_value = create_signal("25:00".to_string());
+    // user input string ("mm:ss"), formatted using time loaded from LocalStorage
+    let input_value = create_signal(format_time(saved_remaining_seconds));
     // validation error message
     let input_error = create_signal(None::<String>);
 
