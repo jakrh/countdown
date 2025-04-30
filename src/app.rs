@@ -1,9 +1,9 @@
 use crate::config::INITIAL_SECONDS;
-use crate::event_ui::{handle_click_and_reset, setup_pause_resume_listener};
-use crate::style_utils::compute_timer_style;
+use crate::event_ui::{create_key_handler, setup_input_mode_listener, setup_pause_resume_listener};
 use crate::time_format::format_time;
 use crate::timer_provider::{GlooTimerProvider, TimerHandle, TimerProvider};
 use crate::timer_service::start_countdown_timer;
+use crate::view_components::{create_timer_display_view, create_timer_input_view};
 use std::cell::RefCell;
 use std::rc::Rc;
 use sycamore::prelude::*;
@@ -17,6 +17,9 @@ pub fn App() -> View {
     // --- Countdown timer state ---
     // Remaining time signal (seconds)
     let remaining_time = create_signal(INITIAL_SECONDS);
+
+    // Custom reset time signal (None = use INITIAL_SECONDS)
+    let reset_time = create_signal(None::<u32>);
 
     // Handle for the main countdown timer
     let countdown_timer_handle: Rc<RefCell<Option<Box<dyn TimerHandle>>>> =
@@ -35,39 +38,58 @@ pub fn App() -> View {
     // Pause state signal
     let is_paused = create_signal(false);
 
+    // --- Input mode ---
+    // true = entering time, false = countdown
+    let input_mode = create_signal(false);
+    // user input string ("mm:ss")
+    let input_value = create_signal("25:00".to_string());
+    // validation error message
+    let input_error = create_signal(None::<String>);
+
     // --- Setup timer logic ---
     // Use on_mount to start the timer when the component mounts
-    // Variable clones for the mount event
-    let countdown_timer_handle_on_mount = countdown_timer_handle.clone();
-    let remaining_time_on_mount = remaining_time.clone();
-    let blink_timer_handle_on_mount = blink_timer_handle.clone();
-    let is_blinking_signal_on_mount = is_blinking_signal.clone();
-    let is_blink_visible_signal_on_mount = is_blink_visible_signal.clone();
+    let countdown_handle_for_mount = countdown_timer_handle.clone();
+    let blink_handle_for_mount = blink_timer_handle.clone();
     on_mount(move || {
         // start countdown using shared timer provider clone by value
         start_countdown_timer(
             timer_provider_for_mount.clone(),
-            &countdown_timer_handle_on_mount,
-            &remaining_time_on_mount,
-            &blink_timer_handle_on_mount,
-            &is_blinking_signal_on_mount,
-            &is_blink_visible_signal_on_mount,
+            &countdown_handle_for_mount,
+            &remaining_time,
+            &blink_handle_for_mount,
+            &is_blinking_signal,
+            &is_blink_visible_signal,
         );
+
         // simplified pause/resume listener setup
         setup_pause_resume_listener(
             timer_provider_for_mount.clone(),
             is_paused.clone(),
-            countdown_timer_handle_on_mount.clone(),
-            blink_timer_handle_on_mount.clone(),
-            remaining_time_on_mount.clone(),
-            is_blinking_signal_on_mount.clone(),
-            is_blink_visible_signal_on_mount.clone(),
+            countdown_handle_for_mount.clone(),
+            blink_handle_for_mount.clone(),
+            remaining_time.clone(),
+            is_blinking_signal.clone(),
+            is_blink_visible_signal.clone(),
+        );
+
+        // Register input mode Enter/Escape listener
+        setup_input_mode_listener(
+            input_mode.clone(),
+            input_value.clone(),
+            input_error.clone(),
+            remaining_time.clone(),
+            timer_provider_for_mount.clone(),
+            countdown_handle_for_mount.clone(),
+            blink_handle_for_mount.clone(),
+            is_blinking_signal.clone(),
+            is_blink_visible_signal.clone(),
+            is_paused.clone(),
+            reset_time.clone(),
         );
     });
 
     // --- Cleanup timer ---
     // Use on_cleanup to ensure timers are canceled on unmount to prevent memory leaks
-    // Variable clones for the cleanup event
     let countdown_timer_handle_on_cleanup = countdown_timer_handle.clone();
     let blink_timer_handle_on_cleanup = blink_timer_handle.clone();
     on_cleanup(move || {
@@ -79,54 +101,41 @@ pub fn App() -> View {
         }
     });
 
-    // --- UI view ---
-    // Clones for UI interaction in view
-    let ui_timer = countdown_timer_handle.clone();
-    let ui_time = remaining_time.clone();
-    let ui_blink_active = is_blinking_signal.clone();
-    let ui_blink_visible = is_blink_visible_signal.clone();
-    let ui_blink_timer = blink_timer_handle.clone();
-    let ui_paused = is_paused.clone();
-    // Clone provider for click handler
-    let timer_provider_click = timer_provider.clone();
-
-    // Named click handler using extracted helper
-    let click_handler = {
-        let provider = timer_provider_click.clone();
-        let countdown = ui_timer.clone();
-        let blink = ui_blink_timer.clone();
-        let time = ui_time.clone();
-        let blink_active = ui_blink_active.clone();
-        let blink_visible = ui_blink_visible.clone();
-        let paused = ui_paused.clone();
-        move |_| {
-            // Handle click event and reset timer if not paused
-            if !paused.get() {
-                handle_click_and_reset(
-                    provider.clone(),
-                    countdown.clone(),
-                    blink.clone(),
-                    time.clone(),
-                    blink_active.clone(),
-                    blink_visible.clone(),
-                );
-            }
-        }
-    };
+    // Create key event handler
+    let key_handler = create_key_handler(
+        input_mode.clone(),
+        input_value.clone(),
+        remaining_time.clone(),
+    );
 
     view! {
-        div(class="timer-container") {
-            p(
-                class="timer-display",
-                style=move || compute_timer_style(
-                    ui_blink_active.get(),
-                    ui_blink_visible.get(),
-                    ui_paused.get(),
-                ),
-                on:click=click_handler
-            ) {
-                (formatted_time)
-            }
+        div(
+            class="timer-container",
+            tabindex="0",
+            on:keydown=key_handler,
+        ) {
+            (if input_mode.get() {
+                create_timer_input_view(
+                    input_value.clone(),
+                    input_error.clone(),
+                    input_mode.clone()
+                )
+            } else {
+                create_timer_display_view(
+                    formatted_time.clone(),
+                    is_blinking_signal.clone(),
+                    is_blink_visible_signal.clone(),
+                    is_paused.clone(),
+                    timer_provider.clone(),
+                    countdown_timer_handle.clone(),
+                    blink_timer_handle.clone(),
+                    remaining_time.clone(),
+                    is_blinking_signal.clone(),
+                    is_blink_visible_signal.clone(),
+                    is_paused.clone(),
+                    reset_time.clone()
+                )
+            })
         }
     }
 }

@@ -7,6 +7,7 @@ mod time_format;
 mod timer_logic;
 mod timer_provider;
 mod timer_service;
+mod view_components;
 
 use app::App;
 
