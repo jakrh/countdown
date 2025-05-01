@@ -4,7 +4,7 @@ use crate::time_format::format_time;
 use crate::timer_provider::{TimerHandle, TimerProvider};
 use crate::timer_service::start_countdown_timer;
 use std::{cell::RefCell, rc::Rc};
-use sycamore::prelude::Signal;
+use sycamore::prelude::{create_signal, Signal};
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlInputElement, KeyboardEvent};
@@ -28,6 +28,12 @@ pub fn create_key_handler(
     input_mode: Signal<bool>,
     input_value: Signal<String>,
     remaining_time: Signal<u32>,
+    timer_provider: Option<Rc<dyn TimerProvider>>,
+    countdown_handle: Option<Rc<RefCell<Option<Box<dyn TimerHandle>>>>>,
+    paused_signal: Option<Signal<bool>>,
+    blink_handle: Option<Rc<RefCell<Option<Box<dyn TimerHandle>>>>>,
+    blinking_signal: Option<Signal<bool>>,
+    visible_signal: Option<Signal<bool>>,
 ) -> impl Fn(KeyboardEvent) + 'static {
     move |ev: KeyboardEvent| {
         handle_toggle_input_mode(
@@ -35,6 +41,12 @@ pub fn create_key_handler(
             input_mode.clone(),
             input_value.clone(),
             remaining_time.clone(),
+            timer_provider.clone(),
+            countdown_handle.clone(),
+            paused_signal.clone(),
+            blink_handle.clone(),
+            blinking_signal.clone(),
+            visible_signal.clone(),
         );
     }
 }
@@ -45,17 +57,66 @@ pub fn handle_toggle_input_mode(
     input_mode: Signal<bool>,
     input_value: Signal<String>,
     remaining_time: Signal<u32>,
+    timer_provider: Option<Rc<dyn TimerProvider>>,
+    countdown_handle: Option<Rc<RefCell<Option<Box<dyn TimerHandle>>>>>,
+    paused_signal: Option<Signal<bool>>,
+    blink_handle: Option<Rc<RefCell<Option<Box<dyn TimerHandle>>>>>,
+    blinking_signal: Option<Signal<bool>>,
+    visible_signal: Option<Signal<bool>>,
 ) -> bool {
     if !input_mode.get() && event.key() == "f" {
         event.prevent_default();
         let time_str = format_time(remaining_time.get());
         input_value.set(time_str);
         input_mode.set(true);
+
+        // Pause the timer when entering input mode
+        if let (Some(paused), Some(countdown)) = (paused_signal, countdown_handle) {
+            if !paused.get() && !blinking_signal.unwrap_or(create_signal(false)).get() {
+                paused.set(true);
+                if let Some(mut h) = countdown.borrow_mut().take() {
+                    h.cancel();
+                }
+            }
+        }
+
         focus_timer_input();
         true
     } else if input_mode.get() && event.key() == "f" {
         event.prevent_default();
         input_mode.set(false);
+
+        // Resume the timer when exiting input mode
+        if let (
+            Some(paused),
+            Some(provider),
+            Some(countdown),
+            Some(remaining),
+            Some(blink),
+            Some(blinking),
+            Some(visible),
+        ) = (
+            paused_signal,
+            timer_provider,
+            countdown_handle,
+            Some(remaining_time),
+            blink_handle,
+            blinking_signal,
+            visible_signal,
+        ) {
+            if paused.get() && !blinking.get() {
+                paused.set(false);
+                start_countdown_timer(
+                    provider.clone(),
+                    &countdown,
+                    &remaining,
+                    &blink,
+                    &blinking,
+                    &visible,
+                );
+            }
+        }
+
         true
     } else {
         false
@@ -294,6 +355,19 @@ pub fn setup_input_mode_listener(
 
                     // Exit input mode
                     input_mode.set(false);
+
+                    // Resume timer if it was paused when entering input mode
+                    if paused_signal.get() && !blinking_signal.get() {
+                        paused_signal.set(false);
+                        start_countdown_timer(
+                            timer_provider.clone(),
+                            &countdown_handle,
+                            &remaining_time,
+                            &blink_handle,
+                            &blinking_signal,
+                            &visible_signal,
+                        );
+                    }
                 }
                 _ => {}
             }
@@ -340,7 +414,6 @@ mod tests {
     use crate::timer_provider::tests::FakeProvider;
     use crate::timer_service::trigger_blink_timer;
     use std::{cell::RefCell, rc::Rc};
-    use sycamore::prelude::*;
     use sycamore::reactive::create_root;
 
     #[test]

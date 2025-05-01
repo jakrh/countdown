@@ -110,6 +110,12 @@ pub fn App() -> View {
         input_mode.clone(),
         input_value.clone(),
         remaining_time.clone(),
+        Some(timer_provider.clone()),
+        Some(countdown_timer_handle.clone()),
+        Some(is_paused.clone()),
+        Some(blink_timer_handle.clone()),
+        Some(is_blinking_signal.clone()),
+        Some(is_blink_visible_signal.clone()),
     );
 
     view! {
