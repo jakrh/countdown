@@ -68,6 +68,11 @@ html, body {
   border-radius: 8px; /* (optional) Add rounded corners */
   color: rgba(255, 255, 255, 0.8); /* Set text color to white for better contrast */
   -webkit-app-region: drag; /* Allow dragging the entire timer container */
+  -webkit-user-drag: auto;
+  -webkit-user-select: none;
+  user-select: none;
+  position: relative;
+  z-index: 1;
 }
 
 /* Styles for the timer text */
@@ -82,4 +87,10 @@ html, body {
     0 0 5px black; /* (optional) Add text shadow for readability */
   margin: 0; /* Remove default paragraph margins */
   -webkit-app-region: no-drag; /* Disable dragging on the timer text so users can click it to control the timer */
+  /* cursor: pointer;
+  user-select: none;
+  pointer-events: auto; */
+  pointer-events: auto;
+  position: relative;
+  z-index: 2;
 }
