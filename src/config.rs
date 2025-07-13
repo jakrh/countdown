@@ -9,5 +9,5 @@ pub const MINIMUM_SECONDS: i32 = -3599;
 /// 1 second in milliseconds for countdown updates
 pub const COUNTDOWN_INTERVAL_MS: u32 = 1000;
 
-/// 200 milliseconds in milliseconds for blink toggling
-pub const BLINK_INTERVAL_MS: u32 = 200;
+/// 500 milliseconds in milliseconds for blink toggling
+pub const BLINK_INTERVAL_MS: u32 = 500;
