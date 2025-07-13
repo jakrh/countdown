@@ -3,7 +3,7 @@ use crate::config::INITIAL_SECONDS;
 /// Result of a click event on the timer display
 pub struct ClickResult {
     /// Remaining time after reset
-    pub reset_remaining: u32,
+    pub reset_remaining: i32,
     /// Whether the blink timer should be canceled
     pub should_cancel_blink: bool,
     /// New blinking state
@@ -13,7 +13,11 @@ pub struct ClickResult {
 }
 
 /// Handle click: always reset timer; if currently blinking, cancel blinking
-pub fn handle_click(_current_remaining: u32, is_blinking: bool, reset_time: Option<u32>) -> ClickResult {
+pub fn handle_click(
+    _current_remaining: i32,
+    is_blinking: bool,
+    reset_time: Option<i32>,
+) -> ClickResult {
     ClickResult {
         reset_remaining: reset_time.unwrap_or(INITIAL_SECONDS),
         should_cancel_blink: is_blinking,
@@ -42,7 +46,7 @@ pub fn format_time_input(value: &str) -> String {
 }
 
 // Function to validate time format and convert to seconds
-pub fn parse_time_input(input: &str) -> Result<u32, String> {
+pub fn parse_time_input(input: &str) -> Result<i32, String> {
     // Split on colon
     let parts: Vec<&str> = input.trim().split(':').collect();
     if parts.len() != 2 {
@@ -50,24 +54,24 @@ pub fn parse_time_input(input: &str) -> Result<u32, String> {
     }
 
     // Parse minutes and seconds
-    let minutes = match parts[0].parse::<u32>() {
+    let minutes = match parts[0].parse::<i32>() {
         Ok(m) => m,
         Err(_) => return Err("Minutes must be a valid number".to_string()),
     };
 
-    let seconds = match parts[1].parse::<u32>() {
+    let seconds = match parts[1].parse::<i32>() {
         Ok(s) => s,
         Err(_) => return Err("Seconds must be a valid number".to_string()),
     };
 
     // Validate ranges
-    if seconds >= 60 {
-        return Err("Seconds must be less than 60".to_string());
+    if seconds < 0 || seconds > 59 {
+        return Err("Seconds must be greater than or equal to 0 and less than 60".to_string());
     }
 
     // Limit total time to reasonable range (e.g., 59:59 max)
-    if minutes > 59 {
-        return Err("Minutes must be 59 or less".to_string());
+    if minutes < 0 || minutes > 59 {
+        return Err("Minutes must be greater than or equal to 0 and less than 60".to_string());
     }
 
     // Convert to total seconds
@@ -161,11 +165,11 @@ mod tests {
     fn test_parse_time_input_err_seconds_too_large() {
         assert_eq!(
             parse_time_input("10:60"),
-            Err("Seconds must be less than 60".to_string())
+            Err("Seconds must be greater than or equal to 0 and less than 60".to_string())
         );
         assert_eq!(
             parse_time_input("10:99"),
-            Err("Seconds must be less than 60".to_string())
+            Err("Seconds must be greater than or equal to 0 and less than 60".to_string())
         );
     }
 
@@ -173,11 +177,23 @@ mod tests {
     fn test_parse_time_input_err_minutes_too_large() {
         assert_eq!(
             parse_time_input("60:00"),
-            Err("Minutes must be 59 or less".to_string())
+            Err("Minutes must be greater than or equal to 0 and less than 60".to_string())
         );
         assert_eq!(
             parse_time_input("99:59"),
-            Err("Minutes must be 59 or less".to_string())
+            Err("Minutes must be greater than or equal to 0 and less than 60".to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_time_input_negative_seconds() {
+        assert_eq!(
+            parse_time_input("-01:30"),
+            Err("Minutes must be greater than or equal to 0 and less than 60".to_string())
+        );
+        assert_eq!(
+            parse_time_input("01:-30"),
+            Err("Seconds must be greater than or equal to 0 and less than 60".to_string())
         );
     }
 

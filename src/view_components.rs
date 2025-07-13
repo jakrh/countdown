@@ -55,11 +55,11 @@ pub fn create_timer_display_view(
     provider: Rc<dyn TimerProvider>,
     countdown_handle: Rc<RefCell<Option<Box<dyn TimerHandle>>>>,
     blink_handle: Rc<RefCell<Option<Box<dyn TimerHandle>>>>,
-    remaining_time: Signal<u32>,
+    remaining_time: Signal<i32>,
     blinking_signal: Signal<bool>,
     visible_signal: Signal<bool>,
     paused_signal: Signal<bool>,
-    reset_time: Signal<Option<u32>>,
+    reset_time: Signal<Option<i32>>,
 ) -> View {
     view! {
         p(

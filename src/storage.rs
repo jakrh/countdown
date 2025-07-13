@@ -4,12 +4,14 @@ const TIMER_REMAINING_SECONDS_KEY: &str = "countdown_timer_remaining_seconds";
 
 /// Read remaining seconds from LocalStorage
 /// If no stored value is found or an error occurs, returns the default value INITIAL_SECONDS
-pub fn load_remaining_seconds() -> u32 {
+pub fn load_remaining_seconds() -> i32 {
     // Try to get the value from localStorage
     if let Some(storage) = get_local_storage() {
         if let Ok(Some(value)) = storage.get_item(TIMER_REMAINING_SECONDS_KEY) {
-            if let Ok(seconds) = value.parse::<u32>() {
-                return seconds;
+            if let Ok(seconds) = value.parse::<i32>() {
+                if seconds >= 0 {
+                    return seconds;
+                }
             }
         }
     }
@@ -19,7 +21,7 @@ pub fn load_remaining_seconds() -> u32 {
 }
 
 /// Save remaining seconds to LocalStorage
-pub fn save_remaining_seconds(seconds: u32) {
+pub fn save_remaining_seconds(seconds: i32) {
     if let Some(storage) = get_local_storage() {
         let _ = storage.set_item(TIMER_REMAINING_SECONDS_KEY, &seconds.to_string());
     }

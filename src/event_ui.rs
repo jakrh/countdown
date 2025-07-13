@@ -27,7 +27,7 @@ pub fn handle_timer_input(event: web_sys::Event, input_value: Signal<String>) {
 pub fn create_key_handler(
     input_mode: Signal<bool>,
     input_value: Signal<String>,
-    remaining_time: Signal<u32>,
+    remaining_time: Signal<i32>,
     timer_provider: Option<Rc<dyn TimerProvider>>,
     countdown_handle: Option<Rc<RefCell<Option<Box<dyn TimerHandle>>>>>,
     paused_signal: Option<Signal<bool>>,
@@ -56,7 +56,7 @@ pub fn handle_toggle_input_mode(
     event: KeyboardEvent,
     input_mode: Signal<bool>,
     input_value: Signal<String>,
-    remaining_time: Signal<u32>,
+    remaining_time: Signal<i32>,
     timer_provider: Option<Rc<dyn TimerProvider>>,
     countdown_handle: Option<Rc<RefCell<Option<Box<dyn TimerHandle>>>>>,
     paused_signal: Option<Signal<bool>>,
@@ -128,10 +128,10 @@ pub fn handle_click_and_reset(
     provider: Rc<dyn TimerProvider>,
     countdown_handle: Rc<RefCell<Option<Box<dyn TimerHandle>>>>,
     blink_handle: Rc<RefCell<Option<Box<dyn TimerHandle>>>>,
-    remaining_time: Signal<u32>,
+    remaining_time: Signal<i32>,
     blinking_signal: Signal<bool>,
     visible_signal: Signal<bool>,
-    reset_time: Signal<Option<u32>>,
+    reset_time: Signal<Option<i32>>,
 ) {
     let result = handle_click(
         remaining_time.get(),
@@ -162,7 +162,7 @@ pub fn setup_pause_resume_listener(
     paused_signal: Signal<bool>,
     countdown_handle: Rc<RefCell<Option<Box<dyn TimerHandle>>>>,
     blink_handle: Rc<RefCell<Option<Box<dyn TimerHandle>>>>,
-    remaining_time: Signal<u32>,
+    remaining_time: Signal<i32>,
     blinking_signal: Signal<bool>,
     visible_signal: Signal<bool>,
 ) {
@@ -232,14 +232,14 @@ pub fn setup_input_mode_listener(
     input_mode: Signal<bool>,
     input_value: Signal<String>,
     input_error: Signal<Option<String>>,
-    remaining_time: Signal<u32>,
+    remaining_time: Signal<i32>,
     timer_provider: Rc<dyn TimerProvider>,
     countdown_handle: Rc<RefCell<Option<Box<dyn TimerHandle>>>>,
     blink_handle: Rc<RefCell<Option<Box<dyn TimerHandle>>>>,
     blinking_signal: Signal<bool>,
     visible_signal: Signal<bool>,
     paused_signal: Signal<bool>,
-    reset_time: Signal<Option<u32>>,
+    reset_time: Signal<Option<i32>>,
 ) {
     let window = web_sys::window().unwrap();
 

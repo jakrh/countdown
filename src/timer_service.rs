@@ -35,7 +35,7 @@ pub fn trigger_blink_timer(
 pub fn start_countdown_timer(
     provider: Rc<dyn TimerProvider>,
     countdown_timer_handle: &Rc<RefCell<Option<Box<dyn TimerHandle>>>>,
-    remaining_signal: &Signal<u32>,
+    remaining_signal: &Signal<i32>,
     blink_timer_handle: &Rc<RefCell<Option<Box<dyn TimerHandle>>>>,
     is_blinking_signal: &Signal<bool>,
     is_blink_visible_signal: &Signal<bool>,
@@ -57,11 +57,16 @@ pub fn start_countdown_timer(
             let current = time_signal_clone.get();
             let result = update_countdown(current);
             time_signal_clone.set(result.remaining);
-            if result.should_blink {
-                // cancel this timer
+
+            if result.should_stop {
+                // Stop the countdown timer when limit (e.g. -59:59) is reached
                 if let Some(mut h) = timer_handle_clone.borrow_mut().take() {
                     h.cancel();
                 }
+                return;
+            }
+
+            if result.should_blink && !blinking_clone.get() {
                 // start blink timer via provider
                 trigger_blink_timer(
                     provider_clone.clone(),
@@ -138,7 +143,7 @@ mod tests {
             );
 
             // FakeProvider triggers countdown then blink callbacks
-            assert_eq!(remaining.get(), 0);
+            assert_eq!(remaining.get(), -1);
             assert!(blinking.get());
             // two intervals scheduled: countdown and blink
             assert_eq!(
