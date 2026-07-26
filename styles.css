@@ -47,14 +47,6 @@ html, body {
   background-color: rgba(0, 0, 0, 0.7);
 }
 
-/* Error message styling */
-.error-message {
-  color: #ff6b6b;
-  font-size: 0.9em;
-  margin-top: 4px;
-  text-shadow: 0 0 3px black;
-}
-
 /* Styles for the timer container */
 .timer-container {
   width: 100%;

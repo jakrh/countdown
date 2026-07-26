@@ -48,8 +48,6 @@ pub fn App() -> View {
     let input_mode = create_signal(false);
     // user input string ("mm:ss"), formatted using time loaded from LocalStorage
     let input_value = create_signal(format_time(saved_remaining_seconds));
-    // validation error message
-    let input_error = create_signal(None::<String>);
 
     // --- Setup timer logic ---
     // Use on_mount to start the timer when the component mounts
@@ -81,7 +79,6 @@ pub fn App() -> View {
         setup_input_mode_listener(
             input_mode.clone(),
             input_value.clone(),
-            input_error.clone(),
             remaining_time.clone(),
             timer_provider_for_mount.clone(),
             countdown_handle_for_mount.clone(),
@@ -128,11 +125,7 @@ pub fn App() -> View {
             on:contextmenu=|ev: MouseEvent| ev.prevent_default(),
         ) {
             (if input_mode.get() {
-                create_timer_input_view(
-                    input_value.clone(),
-                    input_error.clone(),
-                    input_mode.clone()
-                )
+                create_timer_input_view(input_value.clone(), input_mode.clone())
             } else {
                 create_timer_display_view(
                     formatted_time.clone(),

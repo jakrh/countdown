@@ -45,37 +45,19 @@ pub fn format_time_input(value: &str) -> String {
     }
 }
 
-// Function to validate time format and convert to seconds
-pub fn parse_time_input(input: &str) -> Result<i32, String> {
-    // Split on colon
-    let parts: Vec<&str> = input.trim().split(':').collect();
-    if parts.len() != 2 {
-        return Err("Invalid format. Please use MM:SS".to_string());
+/// Parse "MM:SS" into seconds, or `None` if it is not a time in the
+/// 00:00-59:59 range. Rejected input is simply left in the field; the
+/// window is too small to show a reason.
+pub fn parse_time_input(input: &str) -> Option<i32> {
+    let (minutes, seconds) = input.trim().split_once(':')?;
+    let minutes: i32 = minutes.parse().ok()?;
+    let seconds: i32 = seconds.parse().ok()?;
+
+    if !(0..=59).contains(&minutes) || !(0..=59).contains(&seconds) {
+        return None;
     }
 
-    // Parse minutes and seconds
-    let minutes = match parts[0].parse::<i32>() {
-        Ok(m) => m,
-        Err(_) => return Err("Minutes must be a valid number".to_string()),
-    };
-
-    let seconds = match parts[1].parse::<i32>() {
-        Ok(s) => s,
-        Err(_) => return Err("Seconds must be a valid number".to_string()),
-    };
-
-    // Validate ranges
-    if seconds < 0 || seconds > 59 {
-        return Err("Seconds must be greater than or equal to 0 and less than 60".to_string());
-    }
-
-    // Limit total time to reasonable range (e.g., 59:59 max)
-    if minutes < 0 || minutes > 59 {
-        return Err("Minutes must be greater than or equal to 0 and less than 60".to_string());
-    }
-
-    // Convert to total seconds
-    Ok(minutes * 60 + seconds)
+    Some(minutes * 60 + seconds)
 }
 
 #[cfg(test)]
@@ -103,98 +85,65 @@ mod tests {
 
     #[test]
     fn test_parse_time_input_valid_zero() {
-        assert_eq!(parse_time_input("00:00"), Ok(0));
+        assert_eq!(parse_time_input("00:00"), Some(0));
     }
 
     #[test]
     fn test_parse_time_input_valid_regular() {
-        assert_eq!(parse_time_input("12:34"), Ok(12 * 60 + 34));
+        assert_eq!(parse_time_input("12:34"), Some(12 * 60 + 34));
     }
 
     #[test]
     fn test_parse_time_input_valid_leading_zeros() {
-        assert_eq!(parse_time_input("05:07"), Ok(5 * 60 + 7));
+        assert_eq!(parse_time_input("05:07"), Some(5 * 60 + 7));
     }
 
     #[test]
     fn test_parse_time_input_valid_with_whitespace() {
-        assert_eq!(parse_time_input("  07:08  "), Ok(7 * 60 + 8));
+        assert_eq!(parse_time_input("  07:08  "), Some(7 * 60 + 8));
     }
 
     #[test]
     fn test_parse_time_input_err_missing_colon() {
-        assert_eq!(
-            parse_time_input("1234"),
-            Err("Invalid format. Please use MM:SS".to_string())
-        );
+        assert_eq!(parse_time_input("1234"), None);
     }
 
     #[test]
     fn test_parse_time_input_err_empty() {
-        assert_eq!(
-            parse_time_input(""),
-            Err("Invalid format. Please use MM:SS".to_string())
-        );
+        assert_eq!(parse_time_input(""), None);
     }
 
     #[test]
     fn test_parse_time_input_err_multiple_colons() {
-        assert_eq!(
-            parse_time_input("01:02:03"),
-            Err("Invalid format. Please use MM:SS".to_string())
-        );
+        assert_eq!(parse_time_input("01:02:03"), None);
     }
 
     #[test]
     fn test_parse_time_input_err_non_numeric_minutes() {
-        assert_eq!(
-            parse_time_input("ab:12"),
-            Err("Minutes must be a valid number".to_string())
-        );
+        assert_eq!(parse_time_input("ab:12"), None);
     }
 
     #[test]
     fn test_parse_time_input_err_non_numeric_seconds() {
-        assert_eq!(
-            parse_time_input("12:xy"),
-            Err("Seconds must be a valid number".to_string())
-        );
+        assert_eq!(parse_time_input("12:xy"), None);
     }
 
     #[test]
     fn test_parse_time_input_err_seconds_too_large() {
-        assert_eq!(
-            parse_time_input("10:60"),
-            Err("Seconds must be greater than or equal to 0 and less than 60".to_string())
-        );
-        assert_eq!(
-            parse_time_input("10:99"),
-            Err("Seconds must be greater than or equal to 0 and less than 60".to_string())
-        );
+        assert_eq!(parse_time_input("10:60"), None);
+        assert_eq!(parse_time_input("10:99"), None);
     }
 
     #[test]
     fn test_parse_time_input_err_minutes_too_large() {
-        assert_eq!(
-            parse_time_input("60:00"),
-            Err("Minutes must be greater than or equal to 0 and less than 60".to_string())
-        );
-        assert_eq!(
-            parse_time_input("99:59"),
-            Err("Minutes must be greater than or equal to 0 and less than 60".to_string())
-        );
+        assert_eq!(parse_time_input("60:00"), None);
+        assert_eq!(parse_time_input("99:59"), None);
     }
 
     #[test]
     fn test_parse_time_input_negative_seconds() {
-        assert_eq!(
-            parse_time_input("-01:30"),
-            Err("Minutes must be greater than or equal to 0 and less than 60".to_string())
-        );
-        assert_eq!(
-            parse_time_input("01:-30"),
-            Err("Seconds must be greater than or equal to 0 and less than 60".to_string())
-        );
+        assert_eq!(parse_time_input("-01:30"), None);
+        assert_eq!(parse_time_input("01:-30"), None);
     }
 
     #[test]

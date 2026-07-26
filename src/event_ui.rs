@@ -186,7 +186,6 @@ pub fn focus_timer_input() {
 pub fn setup_input_mode_listener(
     input_mode: Signal<bool>,
     input_value: Signal<String>,
-    input_error: Signal<Option<String>>,
     remaining_time: Signal<i32>,
     timer_provider: Rc<dyn TimerProvider>,
     countdown_handle: Rc<RefCell<Option<Box<dyn TimerHandle>>>>,
@@ -215,98 +214,81 @@ pub fn setup_input_mode_listener(
                     // Avoid reading and modifying signal values simultaneously, first get all needed values
                     let input_str = input_value.with(|v| v.clone());
 
-                    // Use web_sys::console for debugging
-                    web_sys::console::log_1(
-                        &format!("Enter key pressed, value: {}", input_str).into(),
-                    );
+                    // Unparseable input is left in the field untouched
+                    if let Some(total_seconds) = parse_time_input(&input_str) {
+                        // Set remaining time and exit input mode
+                        remaining_time.set(total_seconds);
+                        // Also update reset time for next click reset
+                        reset_time.set(Some(total_seconds));
+                        input_mode.set(false);
 
-                    // Parse time string
-                    match parse_time_input(&input_str) {
-                        Ok(total_seconds) => {
-                            // Clear error
-                            input_error.set(None);
+                        // Save the time setting to LocalStorage
+                        save_remaining_seconds(total_seconds);
 
-                            // Set remaining time and exit input mode
-                            remaining_time.set(total_seconds);
-                            // Also update reset time for next click reset
-                            reset_time.set(Some(total_seconds));
-                            input_mode.set(false);
-
-                            // Save the time setting to LocalStorage
-                            save_remaining_seconds(total_seconds);
-
-                            // Cancel existing timers
-                            let mut cancelled_handles = false;
-                            if let Some(mut handle) = countdown_handle.borrow_mut().take() {
-                                handle.cancel();
-                                cancelled_handles = true;
-                            }
-                            if let Some(mut handle) = blink_handle.borrow_mut().take() {
-                                handle.cancel();
-                                cancelled_handles = true;
-                            }
-
-                            // Reset blink states
-                            blinking_signal.set(false);
-                            visible_signal.set(true);
-
-                            // Reset pause state
-                            paused_signal.set(false);
-
-                            // Start new countdown
-                            if cancelled_handles {
-                                // Ensure not reading and modifying signals simultaneously
-                                // Use a short delay to ensure all state updates are complete
-                                let remaining = remaining_time.clone();
-                                let provider = timer_provider.clone();
-                                let countdown = countdown_handle.clone();
-                                let blink = blink_handle.clone();
-                                let is_blinking = blinking_signal.clone();
-                                let is_visible = visible_signal.clone();
-
-                                let cb = wasm_bindgen::closure::Closure::wrap(Box::new(move || {
-                                    start_countdown_timer(
-                                        provider.clone(),
-                                        &countdown,
-                                        &remaining,
-                                        &blink,
-                                        &is_blinking,
-                                        &is_visible,
-                                    );
-                                })
-                                    as Box<dyn FnMut()>);
-
-                                let _ = web_sys::window()
-                                    .unwrap()
-                                    .set_timeout_with_callback_and_timeout_and_arguments_0(
-                                        cb.as_ref().unchecked_ref(),
-                                        10, // Use 10ms delay to ensure state updates are complete
-                                    );
-                                cb.forget();
-                            } else {
-                                // Start timer directly
-                                start_countdown_timer(
-                                    timer_provider.clone(),
-                                    &countdown_handle,
-                                    &remaining_time,
-                                    &blink_handle,
-                                    &blinking_signal,
-                                    &visible_signal,
-                                );
-                            }
+                        // Cancel existing timers
+                        let mut cancelled_handles = false;
+                        if let Some(mut handle) = countdown_handle.borrow_mut().take() {
+                            handle.cancel();
+                            cancelled_handles = true;
                         }
-                        Err(msg) => {
-                            // Display validation error
-                            input_error.set(Some(msg));
+                        if let Some(mut handle) = blink_handle.borrow_mut().take() {
+                            handle.cancel();
+                            cancelled_handles = true;
+                        }
+
+                        // Reset blink states
+                        blinking_signal.set(false);
+                        visible_signal.set(true);
+
+                        // Reset pause state
+                        paused_signal.set(false);
+
+                        // Start new countdown
+                        if cancelled_handles {
+                            // Ensure not reading and modifying signals simultaneously
+                            // Use a short delay to ensure all state updates are complete
+                            let remaining = remaining_time.clone();
+                            let provider = timer_provider.clone();
+                            let countdown = countdown_handle.clone();
+                            let blink = blink_handle.clone();
+                            let is_blinking = blinking_signal.clone();
+                            let is_visible = visible_signal.clone();
+
+                            let cb = wasm_bindgen::closure::Closure::wrap(Box::new(move || {
+                                start_countdown_timer(
+                                    provider.clone(),
+                                    &countdown,
+                                    &remaining,
+                                    &blink,
+                                    &is_blinking,
+                                    &is_visible,
+                                );
+                            })
+                                as Box<dyn FnMut()>);
+
+                            let _ = web_sys::window()
+                                .unwrap()
+                                .set_timeout_with_callback_and_timeout_and_arguments_0(
+                                    cb.as_ref().unchecked_ref(),
+                                    10, // Use 10ms delay to ensure state updates are complete
+                                );
+                            cb.forget();
+                        } else {
+                            // Start timer directly
+                            start_countdown_timer(
+                                timer_provider.clone(),
+                                &countdown_handle,
+                                &remaining_time,
+                                &blink_handle,
+                                &blinking_signal,
+                                &visible_signal,
+                            );
                         }
                     }
                 }
                 "Escape" => {
                     event.prevent_default();
                     event.stop_propagation();
-
-                    // Use web_sys::console for debugging
-                    web_sys::console::log_1(&"Escape key pressed!".into());
 
                     // Exit input mode
                     input_mode.set(false);

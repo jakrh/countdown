@@ -7,11 +7,7 @@ use sycamore::prelude::*;
 use web_sys::MouseEvent;
 
 /// Helper function to create timer input view
-pub fn create_timer_input_view(
-    input_value: Signal<String>,
-    input_error: Signal<Option<String>>,
-    input_mode: Signal<bool>,
-) -> View {
+pub fn create_timer_input_view(input_value: Signal<String>, input_mode: Signal<bool>) -> View {
     view! {
         div(data-tauri-drag-region="false", class="input-container") {
             input(
@@ -34,14 +30,6 @@ pub fn create_timer_input_view(
                     }
                 }
             )
-            (input_error.with_untracked(|err_opt| {
-                if let Some(msg) = err_opt {
-                    let error_msg = msg.clone();
-                    view! { p(class="error-message") { (error_msg) } }
-                } else {
-                    view! {}
-                }
-            }))
         }
     }
 }
