@@ -7,6 +7,7 @@ use crate::view_components::{create_timer_display_view, create_timer_input_view}
 use std::cell::RefCell;
 use std::rc::Rc;
 use sycamore::prelude::*;
+use web_sys::MouseEvent;
 
 #[component]
 pub fn App() -> View {
@@ -125,6 +126,9 @@ pub fn App() -> View {
             class="timer-container",
             tabindex="0",
             on:keydown=key_handler,
+            // Windows keeps its native window menu on the drag region, which is
+            // non-client and so never reaches the webview.
+            on:contextmenu=|ev: MouseEvent| ev.prevent_default(),
         ) {
             (if input_mode.get() {
                 create_timer_input_view(
