@@ -1,6 +1,8 @@
 [package]
 name = "countdown-ui"
-version = "0.1.0"
+# Never published and nothing reads it; the app version lives in
+# src-tauri/Cargo.toml, which is what Tauri stamps into the bundle.
+version = "0.0.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
