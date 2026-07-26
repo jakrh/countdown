@@ -1,0 +1,212 @@
+name: Build
+
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  version:
+    name: Resolve version
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Read version from Cargo.toml
+        id: resolve
+        run: |
+          version=$(cargo metadata --format-version 1 --no-deps \
+            | jq -er '.packages[] | select(.name == "countdown") | .version')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Resolved app version: $version"
+
+      # src-tauri/Cargo.toml is the single source of truth, so a tag that
+      # disagrees with it would ship artifacts whose embedded version does
+      # not match the release they are attached to.
+      - name: Verify tag matches Cargo.toml
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          expected="v${{ steps.resolve.outputs.version }}"
+          if [ "$GITHUB_REF_NAME" != "$expected" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match src-tauri/Cargo.toml ($expected)"
+            exit 1
+          fi
+
+  build:
+    name: ${{ matrix.label }}
+    needs: version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: macos-arm64
+            os: macos-15
+            target: aarch64-apple-darwin
+          - label: windows-x64
+            os: windows-2025
+            target: x86_64-pc-windows-msvc
+          - label: linux-x64
+            os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+    env:
+      ARTIFACT: countdown-${{ needs.version.outputs.version }}-${{ matrix.label }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown,${{ matrix.target }}
+
+      # binstall records installs in .crates.toml, but rust-cache prunes
+      # $CARGO_HOME/bin against .crates2.json, which binstall never writes.
+      # The tools are deleted before the cache is saved, and the restored
+      # .crates.toml then convinces binstall they are still installed.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+          key: ${{ matrix.target }}
+          cache-bin: false
+
+      - uses: cargo-bins/cargo-binstall@v1.21.1
+
+      # Without a token these are anonymous GitHub API calls, rate limited
+      # per source IP. The macOS runner pool shares few enough addresses to
+      # exhaust that, and binstall answers a throttled lookup by silently
+      # falling back to building from source.
+      - name: Install trunk and tauri-cli
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: cargo binstall --no-confirm trunk@0.21.14 tauri-cli@2.11.4
+
+      - name: Install Linux build dependencies
+        if: matrix.label == 'linux-x64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libgtk-3-dev \
+            libxdo-dev \
+            libssl-dev \
+            patchelf \
+            file
+
+      - name: Build macOS app bundle
+        if: matrix.label == 'macos-arm64'
+        run: cargo tauri build --target ${{ matrix.target }} --bundles app
+
+      - name: Build Windows executable
+        if: matrix.label == 'windows-x64'
+        run: cargo tauri build --target ${{ matrix.target }} --no-bundle
+
+      # linuxdeploy and appimagetool are themselves AppImages, and Ubuntu 24.04
+      # blocks the unprivileged user namespaces their runtime mounts through.
+      # Extracting instead of mounting sidesteps it without touching sysctl.
+      - name: Build Linux AppImage
+        if: matrix.label == 'linux-x64'
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: 1
+        run: cargo tauri build --target ${{ matrix.target }} --bundles appimage
+
+      # Tauri leaves the bundle with the linker's ad-hoc signature on the
+      # executable but no bundle-level seal, which macOS reports as damaged.
+      # Re-signing ad-hoc costs nothing and downgrades that to the ordinary
+      # unidentified-developer prompt. It is not notarization.
+      - name: Ad-hoc sign and package macOS app
+        if: matrix.label == 'macos-arm64'
+        run: |
+          app=target/${{ matrix.target }}/release/bundle/macos/countdown.app
+          codesign --force --deep -s - "$app"
+          codesign -vvv --strict "$app"
+          ditto -c -k --keepParent "$app" "$ARTIFACT.zip"
+
+      - name: Package Windows executable
+        if: matrix.label == 'windows-x64'
+        shell: bash
+        run: 7z a "$ARTIFACT.7z" "./target/${{ matrix.target }}/release/countdown.exe"
+
+      - name: Package Linux AppImage
+        if: matrix.label == 'linux-x64'
+        run: |
+          src=$(find target/${{ matrix.target }}/release/bundle/appimage -name '*.AppImage' -print -quit)
+          [ -n "$src" ] || { echo "::error::No AppImage produced"; exit 1; }
+          mv "$src" "$ARTIFACT.AppImage"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.ARTIFACT }}
+          path: |
+            ${{ env.ARTIFACT }}.zip
+            ${{ env.ARTIFACT }}.7z
+            ${{ env.ARTIFACT }}.AppImage
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish release
+    needs: [version, build]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Write release notes
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          cat > notes.md <<EOF
+          ## Downloads
+
+          | Platform | File |
+          | --- | --- |
+          | macOS (Apple Silicon) | \`countdown-$VERSION-macos-arm64.zip\` |
+          | Windows (x64) | \`countdown-$VERSION-windows-x64.7z\` |
+          | Linux (x64) | \`countdown-$VERSION-linux-x64.AppImage\` |
+
+          ## macOS
+
+          The build is ad-hoc signed but not notarized, so macOS refuses
+          to open it until the quarantine flag is cleared:
+
+          \`\`\`
+          xattr -dr com.apple.quarantine <path to countdown.app>
+          \`\`\`
+
+          Dragging the app onto the Terminal window fills in the path.
+
+          ## Windows
+
+          The executable is unsigned, so SmartScreen blocks the first
+          launch. Choose **More info**, then **Run anyway**.
+
+          ## Linux
+
+          \`chmod +x\` the AppImage and run it. Built against glibc 2.39,
+          so it needs Ubuntu 24.04 or a comparably recent distribution.
+          EOF
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file notes.md \
+            artifacts/*
