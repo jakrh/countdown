@@ -18,3 +18,10 @@ web-sys = { version = "0.3", features = ["Window", "EventTarget", "KeyboardEvent
 
 [workspace]
 members = ["src-tauri"]
+
+# Must live in the workspace root: Cargo ignores `[profile.*]` in members.
+# Applies to both the wasm frontend and the Tauri binary.
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
