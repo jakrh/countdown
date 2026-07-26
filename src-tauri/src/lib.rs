@@ -8,6 +8,14 @@ fn greet(name: &str) -> String {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .setup(|_app| {
+            // Hides the app from the Dock and cmd + tab. Must be set here, not via
+            // Info.plist's `LSUIElement`: tao re-applies the activation policy in
+            // `applicationDidFinishLaunching` and discards whatever the plist set.
+            #[cfg(target_os = "macos")]
+            _app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![greet])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
