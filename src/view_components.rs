@@ -13,7 +13,7 @@ pub fn create_timer_input_view(
     input_mode: Signal<bool>,
 ) -> View {
     view! {
-        div(class="input-container") {
+        div(data-tauri-drag-region="false", class="input-container") {
             input(
                 bind:value=input_value,
                 id="timer-input",
@@ -63,6 +63,8 @@ pub fn create_timer_display_view(
 ) -> View {
     view! {
         p(
+            // Dragging swallows mouseup on macOS, killing the click handler below.
+            data-tauri-drag-region="false",
             class="timer-display",
             style=move || compute_timer_style(
                 ui_blink_active.get(),

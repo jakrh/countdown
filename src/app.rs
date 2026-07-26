@@ -120,6 +120,8 @@ pub fn App() -> View {
 
     view! {
         div(
+            // Not in CSS: `-webkit-app-region` is a no-op in macOS' WKWebView.
+            data-tauri-drag-region="deep",
             class="timer-container",
             tabindex="0",
             on:keydown=key_handler,
