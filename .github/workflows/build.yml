@@ -55,13 +55,14 @@ jobs:
           - label: windows-x64
             os: windows-2025
             target: x86_64-pc-windows-msvc
-          # Triage arm, not for release: the windows-2025 label now resolves
-          # to the VS 2026 image, and Defender's ML classifier flags the
-          # executable that toolset produces. Building the same commit on
-          # VS 2022 isolates the toolset as the cause.
-          - label: windows-x64-vs2022
-            os: windows-2022
+          # Triage arm, not for release: Defender's ML classifier flags the
+          # executable built from the committed lockfile, while a local build
+          # whose only difference was an uncommitted `cargo update` scans
+          # clean. This arm reproduces that dependency set.
+          - label: windows-x64-updated
+            os: windows-2025
             target: x86_64-pc-windows-msvc
+            update-deps: true
           - label: linux-x64
             os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
@@ -116,6 +117,14 @@ jobs:
       - name: Build macOS app bundle
         if: matrix.label == 'macos-arm64'
         run: cargo tauri build --target ${{ matrix.target }} --bundles app
+
+      - name: Update dependencies
+        if: matrix.update-deps
+        shell: bash
+        run: |
+          cargo update
+          git --no-pager diff --stat Cargo.lock
+          git --no-pager diff Cargo.lock
 
       - name: Build Windows executable
         if: startsWith(matrix.label, 'windows-x64')
@@ -182,6 +191,16 @@ jobs:
             "  {0,-8} raw={1,10} virt={2,10}" -f $name, [BitConverter]::ToUInt32($bytes, $o + 16), [BitConverter]::ToUInt32($bytes, $o + 8)
           }
           (Get-Item $exe).VersionInfo | Format-List CompanyName, FileDescription, FileVersion, ProductName, LegalCopyright, OriginalFilename
+
+          # Dependency source paths survive `strip`, so the executable reports
+          # the toolchain and the dependency versions it was built from. This
+          # is the only way to read those back out of a binary built elsewhere.
+          $text = [Text.Encoding]::GetEncoding('iso-8859-1').GetString($bytes)
+          "Embedded rustc : " + [regex]::Match($text, 'rustc/[0-9a-f]{40}').Value
+          "Embedded crate versions:"
+          [regex]::Matches($text, 'index\.crates\.io-[0-9a-f]{16}\\([A-Za-z0-9_.+-]+?)-(\d+\.\d+\.\d+[A-Za-z0-9.+-]*)\\') |
+            ForEach-Object { "$($_.Groups[1].Value) $($_.Groups[2].Value)" } |
+            Sort-Object -Unique | ForEach-Object { "  $_" }
 
       - name: Package Windows executable
         if: startsWith(matrix.label, 'windows-x64')
