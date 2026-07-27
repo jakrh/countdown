@@ -55,6 +55,13 @@ jobs:
           - label: windows-x64
             os: windows-2025
             target: x86_64-pc-windows-msvc
+          # Triage arm, not for release: the windows-2025 label now resolves
+          # to the VS 2026 image, and Defender's ML classifier flags the
+          # executable that toolset produces. Building the same commit on
+          # VS 2022 isolates the toolset as the cause.
+          - label: windows-x64-vs2022
+            os: windows-2022
+            target: x86_64-pc-windows-msvc
           - label: linux-x64
             os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
@@ -71,10 +78,14 @@ jobs:
       # $CARGO_HOME/bin against .crates2.json, which binstall never writes.
       # The tools are deleted before the cache is saved, and the restored
       # .crates.toml then convinces binstall they are still installed.
+      # Keyed on the label rather than the target: the two Windows arms share
+      # a target triple but not a toolset, and Cargo's fingerprints do not
+      # track the MSVC version, so a shared cache would hand one arm objects
+      # the other arm's linker produced.
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: ". -> target"
-          key: ${{ matrix.target }}
+          key: ${{ matrix.label }}
           cache-bin: false
 
       - uses: cargo-bins/cargo-binstall@v1.21.1
@@ -107,7 +118,7 @@ jobs:
         run: cargo tauri build --target ${{ matrix.target }} --bundles app
 
       - name: Build Windows executable
-        if: matrix.label == 'windows-x64'
+        if: startsWith(matrix.label, 'windows-x64')
         run: cargo tauri build --target ${{ matrix.target }} --no-bundle
 
       # linuxdeploy and appimagetool are themselves AppImages, and Ubuntu 24.04
@@ -131,8 +142,49 @@ jobs:
           codesign -vvv --strict "$app"
           ditto -c -k --keepParent "$app" "$ARTIFACT.zip"
 
+      # The toolset a runner label resolves to is not stable over time, so the
+      # comparison needs the versions and the PE stamps read back out of the
+      # executable this run actually produced.
+      - name: Report Windows toolchain and PE metadata
+        if: startsWith(matrix.label, 'windows-x64')
+        shell: pwsh
+        run: |
+          "Runner image   : $env:ImageOS $env:ImageVersion"
+          rustc -vV
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $installs = & $vswhere -all -prerelease -products '*' -format json | ConvertFrom-Json
+          foreach ($vs in $installs) {
+            "$($vs.displayName) $($vs.installationVersion)"
+            $default = Join-Path $vs.installationPath 'VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt'
+            if (Test-Path $default) { "  VCTools default: " + (Get-Content $default).Trim() }
+            Get-ChildItem (Join-Path $vs.installationPath 'VC\Tools\MSVC') -Directory -ErrorAction SilentlyContinue |
+              ForEach-Object {
+                $link = Join-Path $_.FullName 'bin\Hostx64\x64\link.exe'
+                if (Test-Path $link) { "  toolset $($_.Name) -> link.exe $((Get-Item $link).VersionInfo.FileVersion)" }
+              }
+          }
+          "Trunk tool cache:"
+          Get-ChildItem "$env:LOCALAPPDATA\trunk" -ErrorAction SilentlyContinue | ForEach-Object { "  $($_.Name)" }
+
+          $exe = "target/${{ matrix.target }}/release/countdown.exe"
+          $bytes = [IO.File]::ReadAllBytes($exe)
+          $pe = [BitConverter]::ToInt32($bytes, 0x3C)
+          $stamp = [BitConverter]::ToUInt32($bytes, $pe + 8)
+          "Size           : {0} bytes" -f $bytes.Length
+          "SHA256         : " + (Get-FileHash $exe -Algorithm SHA256).Hash
+          "Linker version : {0}.{1}" -f $bytes[$pe + 26], $bytes[$pe + 27]
+          "TimeDateStamp  : 0x{0:X8} ({1:u})" -f $stamp, [DateTimeOffset]::FromUnixTimeSeconds($stamp).UtcDateTime
+          "Sections:"
+          $sections = $pe + 24 + [BitConverter]::ToUInt16($bytes, $pe + 20)
+          foreach ($i in 0..([BitConverter]::ToUInt16($bytes, $pe + 6) - 1)) {
+            $o = $sections + $i * 40
+            $name = [Text.Encoding]::ASCII.GetString($bytes, $o, 8).Trim([char]0)
+            "  {0,-8} raw={1,10} virt={2,10}" -f $name, [BitConverter]::ToUInt32($bytes, $o + 16), [BitConverter]::ToUInt32($bytes, $o + 8)
+          }
+          (Get-Item $exe).VersionInfo | Format-List CompanyName, FileDescription, FileVersion, ProductName, LegalCopyright, OriginalFilename
+
       - name: Package Windows executable
-        if: matrix.label == 'windows-x64'
+        if: startsWith(matrix.label, 'windows-x64')
         shell: bash
         run: 7z a "$ARTIFACT.7z" "./target/${{ matrix.target }}/release/countdown.exe"
 
