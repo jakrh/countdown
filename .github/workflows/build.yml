@@ -55,19 +55,29 @@ jobs:
           - label: windows-x64
             os: windows-2025
             target: x86_64-pc-windows-msvc
-          # Triage arm, not for release: Defender's ML classifier flags the
-          # executable built from the committed lockfile, while a local build
-          # whose only difference was an uncommitted `cargo update` scans
-          # clean. This arm reproduces that dependency set.
-          - label: windows-x64-updated
+          # Triage arms, not for release. Defender's ML classifier flags every
+          # Windows executable CI has produced, while builds from a local
+          # machine scan clean. The rustc version and every dependency version
+          # are identical across both, so each arm removes one of the few
+          # remaining differences. All arms must be scanned on the same day:
+          # the verdict has already been observed to change with nothing but
+          # the build timestamp, so single scans carry no signal.
+          - label: windows-x64-remap
             os: windows-2025
             target: x86_64-pc-windows-msvc
-            update-deps: true
+            remap-paths: true
+          - label: windows-x64-nostrip
+            os: windows-2025
+            target: x86_64-pc-windows-msvc
+            strip: none
           - label: linux-x64
             os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
     env:
       ARTIFACT: countdown-${{ needs.version.outputs.version }}-${{ matrix.label }}
+      # Mirrors Cargo.toml unless an arm overrides it; Cargo has no way to set
+      # a profile key per target, so a per-platform strip has to come from here.
+      CARGO_PROFILE_RELEASE_STRIP: ${{ matrix.strip || 'true' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -118,13 +128,16 @@ jobs:
         if: matrix.label == 'macos-arm64'
         run: cargo tauri build --target ${{ matrix.target }} --bundles app
 
-      - name: Update dependencies
-        if: matrix.update-deps
+      # Dependency source paths reach the executable through panic locations,
+      # so a release build names the account it was built under. Reading the
+      # prefixes out of the environment keeps this honest if either moves.
+      - name: Remap build paths
+        if: matrix.remap-paths
         shell: bash
         run: |
-          cargo update
-          git --no-pager diff --stat Cargo.lock
-          git --no-pager diff Cargo.lock
+          echo "RUSTFLAGS=--remap-path-prefix=$CARGO_HOME=/cargo --remap-path-prefix=$GITHUB_WORKSPACE=/src" >> "$GITHUB_ENV"
+          echo "CARGO_HOME=$CARGO_HOME"
+          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
 
       - name: Build Windows executable
         if: startsWith(matrix.label, 'windows-x64')
@@ -159,6 +172,8 @@ jobs:
         shell: pwsh
         run: |
           "Runner image   : $env:ImageOS $env:ImageVersion"
+          "Profile strip  : $env:CARGO_PROFILE_RELEASE_STRIP"
+          "RUSTFLAGS      : $env:RUSTFLAGS"
           rustc -vV
           $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
           $installs = & $vswhere -all -prerelease -products '*' -format json | ConvertFrom-Json
@@ -197,6 +212,10 @@ jobs:
           # is the only way to read those back out of a binary built elsewhere.
           $text = [Text.Encoding]::GetEncoding('iso-8859-1').GetString($bytes)
           "Embedded rustc : " + [regex]::Match($text, 'rustc/[0-9a-f]{40}').Value
+          "Embedded user paths:"
+          [regex]::Matches($text, '[A-Za-z]:\\Users\\[A-Za-z0-9_.~-]{1,20}') |
+            ForEach-Object { $_.Value } | Group-Object | Sort-Object Count -Descending |
+            ForEach-Object { "  $($_.Name) x$($_.Count)" }
           "Embedded crate versions:"
           [regex]::Matches($text, 'index\.crates\.io-[0-9a-f]{16}\\([A-Za-z0-9_.+-]+?)-(\d+\.\d+\.\d+[A-Za-z0-9.+-]*)\\') |
             ForEach-Object { "$($_.Groups[1].Value) $($_.Groups[2].Value)" } |
