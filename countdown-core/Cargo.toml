@@ -1,0 +1,10 @@
+[package]
+name = "countdown-core"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+
+[dev-dependencies]
+proptest = "1.12.0"
