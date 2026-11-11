@@ -63,7 +63,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: dtolnay/rust-toolchain@1.97.1
+      - uses: dtolnay/rust-toolchain@1.99.1
         with:
           targets: wasm32-unknown-unknown,${{ matrix.target }}
 
@@ -77,7 +77,7 @@ jobs:
           key: ${{ matrix.target }}
           cache-bin: false
 
-      - uses: cargo-bins/cargo-binstall@v1.21.1
+      - uses: cargo-bins/cargo-binstall@v1.26.2
 
       # Without a token these are anonymous GitHub API calls, rate limited
       # per source IP. The macOS runner pool shares few enough addresses to
@@ -86,7 +86,7 @@ jobs:
       - name: Install trunk and tauri-cli
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: cargo binstall --no-confirm trunk@0.21.14 tauri-cli@2.11.4
+        run: cargo binstall --no-confirm trunk@0.22.1 tauri-cli@2.12.4
 
       - name: Install Linux build dependencies
         if: matrix.label == 'linux-x64'
