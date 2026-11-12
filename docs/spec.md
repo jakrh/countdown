@@ -484,13 +484,20 @@ step's time.
   `Info.plist` keeps `LSUIElement = true` only to shrink the Dock-icon
   flash before that point.
 - **W-CAPABILITIES**: the main window's capability grants exactly
-  `core:window:allow-start-dragging` and
-  `core:window:allow-internal-toggle-maximize`. These are the only
-  commands the frontend calls: Tauri's drag-region script sends
-  `start_dragging` on press and `internal_toggle_maximize` on
-  double-click (a no-op, since the window is not resizable). Names are
-  checked against Tauri 2.12.5's drag script; re-check them on a Tauri
-  upgrade.
+  `core:window:allow-start-dragging`,
+  `core:window:allow-internal-toggle-maximize` and
+  `core:webview:allow-internal-toggle-devtools`. These are the only
+  commands Tauri's injected scripts send:
+  - The drag-region script sends `start_dragging` on press and
+    `internal_toggle_maximize` on double-click (a no-op, since the
+    window is not resizable).
+  - In debug builds, the devtools hotkey (Cmd+Option+I on macOS,
+    Ctrl+Shift+I elsewhere) sends `internal_toggle_devtools`. Release
+    builds compile neither the script nor the command, so the grant is
+    inert there and one static capability serves both builds.
+
+  Names are checked against Tauri 2.12.5's scripts; re-check them on a
+  Tauri upgrade.
 - **W-FOCUS**: the window takes keyboard focus at launch (Tauri's
   default `focus: true`, hence omitted per W-WINDOW). Clicking the
   container gives it focus without resetting the timer, since only the
@@ -510,8 +517,7 @@ step's time.
     `gloo-timers` (its `Timeout` cancels on drop, so replacing the one
     pending wakeup is an assignment) and `console_error_panic_hook`.
   - `src-tauri`: `tauri` with `macos-private-api`, and build-dependency
-    `tauri-build`. `serde` and `serde_json` stay only if
-    `generate_context!` fails to build without them.
+    `tauri-build`.
 
   Every crate uses edition 2024. Each version requirement is the full
   version adopted, e.g. `"2.12.5"`, so the manifest records the tested

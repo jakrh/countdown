@@ -1,11 +1,8 @@
 [package]
 name = "countdown"
 version = "0.1.1"
-description = "A Tauri App"
-authors = ["you"]
+description = "An always-on-top countdown timer"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
 # The `_lib` suffix may seem redundant but it is necessary
@@ -15,12 +12,9 @@ name = "countdown_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2.7.4", features = [] }
+tauri-build = "2.7.4"
 
 [dependencies]
 # `macos-private-api` is inert on other platforms, so it stays unconditional
 # rather than duplicating the whole table under a macOS target section.
 tauri = { version = "2.12.5", features = ["macos-private-api"] }
-tauri-plugin-opener = "2.7.3"
-serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.154"
