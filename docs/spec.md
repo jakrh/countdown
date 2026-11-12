@@ -320,8 +320,9 @@ step's time.
 - `init(Some("0"), t0)` → `start_from_secs == 0`
 - `init(Some("3599"), t0)` → `3599`
 - `init(Some("+60"), t0)` and `init(Some("0060"), t0)` → `60`
-- For each of `Some("3600")`, `Some("-1")`, `Some("abc")`, `Some("")`,
-  `Some(" 60")`, `None`: `start_from_secs == DEFAULT_START_FROM_SECS`
+- For each of `Some("3600")`, `Some("4294967296")` (`u32::MAX + 1`),
+  `Some("-1")`, `Some("abc")`, `Some("")`, `Some(" 60")`, `None`:
+  `start_from_secs == DEFAULT_START_FROM_SECS`
 
 ## 7. Persistence
 

@@ -208,6 +208,7 @@ fn sc_load() {
 
     let rejected = [
         Some("3600"),
+        Some("4294967296"),
         Some("-1"),
         Some("abc"),
         Some(""),

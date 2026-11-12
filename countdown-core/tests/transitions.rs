@@ -59,7 +59,13 @@ fn t_noop() {
 fn t_noop_mode_evaluated_at_input_time() {
     // Running when built, Overdue by the time the input arrives.
     let m = running(1000, T0);
-    assert_eq!(update(m.clone(), Pause, T0 + 2000), (m, None));
+    for input in [Pause, Edit] {
+        assert_eq!(
+            update(m.clone(), input, T0 + 2000),
+            (m.clone(), None),
+            "{input:?}"
+        );
+    }
 }
 
 #[test]
