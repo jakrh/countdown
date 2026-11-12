@@ -131,7 +131,11 @@ fn f_accepts() {
             let Phase::Editing { draft, .. } = &after.phase else {
                 panic!("left Editing: {after:?}");
             };
-            assert_eq!(draft.digits[usize::from(slot)] == d, accepts, "slot {slot}, d {d}");
+            assert_eq!(
+                draft.digits[usize::from(slot)] == d,
+                accepts,
+                "slot {slot}, d {d}"
+            );
         }
     }
 }

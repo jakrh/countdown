@@ -206,7 +206,14 @@ fn sc_load() {
         assert_eq!(init(Some(stored), T0).start_from_secs, secs, "{stored:?}");
     }
 
-    let rejected = [Some("3600"), Some("-1"), Some("abc"), Some(""), Some(" 60"), None];
+    let rejected = [
+        Some("3600"),
+        Some("-1"),
+        Some("abc"),
+        Some(""),
+        Some(" 60"),
+        None,
+    ];
     for stored in rejected {
         assert_eq!(
             init(stored, T0).start_from_secs,

@@ -10,7 +10,9 @@ fn t_init() {
     assert_eq!(
         init(Some("90"), T0),
         Model {
-            phase: Phase::Running { deadline: T0 + 90_000 },
+            phase: Phase::Running {
+                deadline: T0 + 90_000
+            },
             start_from_secs: 90,
         }
     );
@@ -22,7 +24,9 @@ fn t_init_uses_default_without_stored_value() {
     assert_eq!(
         init(None, T0),
         Model {
-            phase: Phase::Running { deadline: T0 + i64::from(start) * 1000 },
+            phase: Phase::Running {
+                deadline: T0 + i64::from(start) * 1000
+            },
             start_from_secs: start,
         }
     );
@@ -38,7 +42,10 @@ fn t_noop() {
     ];
     for (expected_mode, m) in cases {
         assert_eq!(mode(&m, T0), expected_mode);
-        for input in ALL_INPUTS.into_iter().filter(|&i| is_noop(expected_mode, i)) {
+        for input in ALL_INPUTS
+            .into_iter()
+            .filter(|&i| is_noop(expected_mode, i))
+        {
             assert_eq!(
                 update(m.clone(), input, T0),
                 (m.clone(), None),
@@ -59,7 +66,12 @@ fn t_noop_mode_evaluated_at_input_time() {
 fn t_run_pause() {
     let m = running(1_452_700, T0);
     let (m, effect) = update(m, Pause, T0 + 300);
-    assert_eq!(m.phase, Phase::Paused { remaining_ms: 1_452_400 });
+    assert_eq!(
+        m.phase,
+        Phase::Paused {
+            remaining_ms: 1_452_400
+        }
+    );
     assert_eq!(m.start_from_secs, TEST_START);
     assert_eq!(effect, None);
 }
@@ -73,7 +85,12 @@ fn t_run_pause_during_zero_second() {
 #[test]
 fn t_pau_pause() {
     let (m, effect) = update(paused(1_452_400), Pause, T1);
-    assert_eq!(m.phase, Phase::Running { deadline: T1 + 1_452_400 });
+    assert_eq!(
+        m.phase,
+        Phase::Running {
+            deadline: T1 + 1_452_400
+        }
+    );
     assert_eq!(effect, None);
 }
 
@@ -108,7 +125,9 @@ fn t_reset_from_running() {
         update(running(5000, T0), Click, T0),
         (
             Model {
-                phase: Phase::Running { deadline: T0 + i64::from(TEST_START) * 1000 },
+                phase: Phase::Running {
+                    deadline: T0 + i64::from(TEST_START) * 1000
+                },
                 start_from_secs: TEST_START,
             },
             None,
@@ -122,7 +141,9 @@ fn t_reset_from_overdue() {
         update(running(-5000, T0), Click, T0),
         (
             Model {
-                phase: Phase::Running { deadline: T0 + i64::from(TEST_START) * 1000 },
+                phase: Phase::Running {
+                    deadline: T0 + i64::from(TEST_START) * 1000
+                },
                 start_from_secs: TEST_START,
             },
             None,
@@ -218,7 +239,9 @@ fn t_edt_confirm() {
         update(m, Confirm, T1),
         (
             Model {
-                phase: Phase::Running { deadline: T1 + 754_000 },
+                phase: Phase::Running {
+                    deadline: T1 + 754_000
+                },
                 start_from_secs: 754,
             },
             Some(Effect::SaveStartFrom(754)),
@@ -233,7 +256,9 @@ fn t_edt_cancel() {
         update(m, Cancel, T1),
         (
             Model {
-                phase: Phase::Running { deadline: T1 + 1_452_700 },
+                phase: Phase::Running {
+                    deadline: T1 + 1_452_700
+                },
                 start_from_secs: TEST_START,
             },
             None,
@@ -248,7 +273,9 @@ fn t_edt_cancel_on_blur() {
         update(m, Blur, T1),
         (
             Model {
-                phase: Phase::Running { deadline: T1 + 1_452_700 },
+                phase: Phase::Running {
+                    deadline: T1 + 1_452_700
+                },
                 start_from_secs: TEST_START,
             },
             None,

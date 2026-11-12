@@ -60,7 +60,9 @@ fn digit() -> impl Strategy<Value = u8> {
 }
 
 fn editor_input() -> impl Strategy<Value = Input> {
-    input().prop_filter("not an editor exit", |i| !matches!(i, Confirm | Cancel | Blur))
+    input().prop_filter("not an editor exit", |i| {
+        !matches!(i, Confirm | Cancel | Blur)
+    })
 }
 
 fn gap() -> impl Strategy<Value = i64> {
@@ -93,7 +95,11 @@ fn stored_text() -> impl Strategy<Value = String> {
     let edges = ["-0", "+0", "0", "3599", "3600", "-3599", " 0", "0 "];
     prop_oneof![
         affix(&edges).prop_map(str::to_owned),
-        (affix(&["", "+", "-", " ", "0", "00"]), 0u32..=5000, affix(&["", " ", "\n", ".0", "x"]))
+        (
+            affix(&["", "+", "-", " ", "0", "00"]),
+            0u32..=5000,
+            affix(&["", " ", "\n", ".0", "x"])
+        )
             .prop_map(|(pre, n, post)| format!("{pre}{n}{post}")),
         ".{0,8}",
     ]
@@ -117,7 +123,13 @@ fn run(tr: &Trace) -> Vec<Step> {
         .map(|&(input, dt)| {
             t += dt;
             let (after, effect) = update(m.clone(), input, t);
-            let step = Step { before: m.clone(), input, at: t, after: after.clone(), effect };
+            let step = Step {
+                before: m.clone(),
+                input,
+                at: t,
+                after: after.clone(),
+                effect,
+            };
             m = after;
             step
         })

@@ -43,7 +43,10 @@ pub fn editing(r: i64, text: &str, cursor: u8) -> Model {
 /// `text` is `"MM:SS"`.
 pub fn draft(text: &str, cursor: u8) -> Draft {
     let b = text.as_bytes();
-    assert!(b.len() == 5 && b[2] == b':', "draft text must be MM:SS: {text}");
+    assert!(
+        b.len() == 5 && b[2] == b':',
+        "draft text must be MM:SS: {text}"
+    );
     Draft {
         digits: [b[0] - b'0', b[1] - b'0', b[3] - b'0', b[4] - b'0'],
         cursor,
@@ -105,9 +108,8 @@ pub fn parse_shown(text: &str) -> i64 {
         None => (1, text),
     };
     let b = body.as_bytes();
-    let well_formed = b.len() == 5
-        && b[2] == b':'
-        && [b[0], b[1], b[3], b[4]].iter().all(u8::is_ascii_digit);
+    let well_formed =
+        b.len() == 5 && b[2] == b':' && [b[0], b[1], b[3], b[4]].iter().all(u8::is_ascii_digit);
     assert!(well_formed, "not MM:SS: {text:?}");
     let digit = |i: usize| i64::from(b[i] - b'0');
     let (mm, ss) = (digit(0) * 10 + digit(1), digit(3) * 10 + digit(4));
