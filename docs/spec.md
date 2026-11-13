@@ -475,11 +475,10 @@ step's time.
   settings: `title: "countdown"`, `center: true`, `width: 110`,
   `height: 52`, `acceptFirstMouse: true`, `transparent: true`,
   `decorations: false`, `alwaysOnTop: true`, `skipTaskbar: true`,
-  `resizable: false`. Settings with no effect and settings equal to
-  Tauri's defaults are omitted.
-- **W-ONE-CONFIG**: there are no platform config files.
-  `app.macOSPrivateApi: true` lives in `tauri.conf.json` (it is inert
-  elsewhere), and `dragDropEnabled` keeps its default.
+  `resizable: false`, `theme: "Dark"`. Settings with no effect and
+  settings equal to Tauri's defaults are omitted.
+- **W-ONE-CONFIG**: there are no platform config files, and
+  `dragDropEnabled` keeps its default.
 - **W-ACTIVATION**: on macOS, the app sets
   `ActivationPolicy::Accessory` in Tauri's `setup`, which hides it from
   the Dock and Cmd+Tab. It MUST be set there: tao re-applies the policy
@@ -519,8 +518,8 @@ step's time.
   - Frontend: `countdown-core`, `wasm-bindgen`, `web-sys`,
     `gloo-timers` (its `Timeout` cancels on drop, so replacing the one
     pending wakeup is an assignment) and `console_error_panic_hook`.
-  - `src-tauri`: `tauri` with `macos-private-api`, and build-dependency
-    `tauri-build`.
+  - `src-tauri`: `tauri`, and build-dependency `tauri-build`, both with
+    no features beyond their defaults.
 
   Every crate uses edition 2024. Each version requirement is the full
   version adopted, e.g. `"2.12.5"`, so the manifest records the tested

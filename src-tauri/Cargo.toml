@@ -2,7 +2,7 @@
 name = "countdown"
 version = "0.1.1"
 description = "An always-on-top countdown timer"
-edition = "2021"
+edition = "2024"
 
 [lib]
 # The `_lib` suffix may seem redundant but it is necessary
@@ -18,6 +18,4 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.7.4", features = [] }
 
 [dependencies]
-# `macos-private-api` is inert on other platforms, so it stays unconditional
-# rather than duplicating the whole table under a macOS target section.
-tauri = { version = "2.12.5", features = ["macos-private-api"] }
+tauri = { version = "2.12.5", features = [] }

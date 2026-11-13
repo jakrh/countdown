@@ -146,6 +146,13 @@ nothing, not a new rule.
   default, under which Tauri intercepts file drops and the app ignores
   them; turning it off on macOS hands drops to WebKit, which may open
   the file over the whole app.
+- **The config keeps only settings that do something** (W-WINDOW).
+  `macOSPrivateApi` and its `macos-private-api` feature are left out:
+  both have been no-ops since Tauri 2.12.1. `theme: "Dark"` stays for
+  what the system draws around the page, the Windows 11 border of the
+  borderless window. The theme does reach the webview's
+  `prefers-color-scheme`; the page is unaffected only because it
+  declares no `color-scheme` and never queries it.
 - **The old storage key is not migrated** (P-NO-MIGRATION). It was
   named for the remaining time but held the start time. A one-time
   fallback to the default start time is cheaper than carrying migration
