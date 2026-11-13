@@ -12,7 +12,10 @@ name = "countdown_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = "2.7.4"
+# tauri-cli rewrites the `features` of `tauri` and `tauri-build` from
+# tauri.conf.json on every run, turning a bare version string into this
+# table. Keeping its form leaves `cargo tauri dev` with no diff.
+tauri-build = { version = "2.7.4", features = [] }
 
 [dependencies]
 # `macos-private-api` is inert on other platforms, so it stays unconditional
