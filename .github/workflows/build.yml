@@ -143,9 +143,12 @@ jobs:
           [ -n "$src" ] || { echo "::error::No AppImage produced"; exit 1; }
           mv "$src" "$ARTIFACT.AppImage"
 
+      # Each job leaves exactly one file, already packaged, so it is
+      # uploaded as is: a zipped artifact wrapped the Windows and macOS
+      # zips in a second zip. Unzipped artifacts take the file's name.
       - uses: actions/upload-artifact@v7
         with:
-          name: ${{ env.ARTIFACT }}
+          archive: false
           path: |
             ${{ env.ARTIFACT }}.zip
             ${{ env.ARTIFACT }}.AppImage
@@ -160,10 +163,13 @@ jobs:
     permissions:
       contents: write
     steps:
+      # Without skip-decompress, the zips uploaded as is would be unpacked
+      # here, since the action detects a zip by its content type.
       - uses: actions/download-artifact@v8
         with:
           path: artifacts
           merge-multiple: true
+          skip-decompress: true
 
       - name: Write release notes
         env:
