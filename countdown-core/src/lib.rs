@@ -136,7 +136,7 @@ pub fn update(m: Model, input: Input, now: i64) -> (Model, Option<Effect>) {
             );
         }
         // T-PAU-PAUSE and T-EDT-CANCEL: time resumes from where it stopped.
-        (Pause, Phase::Paused { .. }) | (Cancel | Blur, Phase::Editing { .. }) => {
+        (Pause, Phase::Paused { .. }) | (Edit | Cancel | Blur, Phase::Editing { .. }) => {
             Phase::Running { deadline: now + r }
         }
         _ => return (m, None),

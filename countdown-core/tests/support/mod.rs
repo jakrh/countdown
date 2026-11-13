@@ -146,7 +146,7 @@ pub fn is_noop(mode: Mode, input: Input) -> bool {
             | (Mode::Overdue, Click)
             | (
                 Mode::Editing,
-                Digit(_) | Left | Right | Backspace | Confirm | Cancel | Blur
+                Edit | Digit(_) | Left | Right | Backspace | Confirm | Cancel | Blur
             )
     )
 }

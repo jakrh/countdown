@@ -257,34 +257,20 @@ fn t_edt_confirm() {
 
 #[test]
 fn t_edt_cancel() {
-    let m = editing(1_452_700, "05:30", 2);
-    assert_eq!(
-        update(m, Cancel, T1),
-        (
-            Model {
-                phase: Phase::Running {
-                    deadline: T1 + 1_452_700
+    for input in [Cancel, Blur, Edit] {
+        let m = editing(1_452_700, "05:30", 2);
+        assert_eq!(
+            update(m, input, T1),
+            (
+                Model {
+                    phase: Phase::Running {
+                        deadline: T1 + 1_452_700
+                    },
+                    start_from_secs: TEST_START,
                 },
-                start_from_secs: TEST_START,
-            },
-            None,
-        )
-    );
-}
-
-#[test]
-fn t_edt_cancel_on_blur() {
-    let m = editing(1_452_700, "05:30", 2);
-    assert_eq!(
-        update(m, Blur, T1),
-        (
-            Model {
-                phase: Phase::Running {
-                    deadline: T1 + 1_452_700
-                },
-                start_from_secs: TEST_START,
-            },
-            None,
-        )
-    );
+                None,
+            ),
+            "{input:?}"
+        );
+    }
 }

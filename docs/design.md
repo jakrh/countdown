@@ -29,11 +29,17 @@ nothing, not a new rule.
   other input (T-NOOP), and leads only back to Running:
   - Paused: `p`.
   - Overdue: a click, which resets as it does in Running.
-  - Editing: digits, arrows, Backspace, Enter, Esc, and losing focus.
+  - Editing: digits, arrows, Backspace, Enter, Esc, `f`, and losing
+    focus.
 
   So `f` while paused does nothing rather than meaning "resume and
   edit". Routing every path through Running keeps the transition table
-  small and every key predictable.
+  small and every key predictable. The key that enters a mode also
+  leaves it: `p` resumes from Paused, and `f` leaves Editing as Esc
+  does, discarding the draft. A mistaken `f` is undone by pressing it
+  again, and the rule adds no transition, only a second key for Esc.
+  `p` still does nothing while editing, just as `f` does nothing while
+  paused: neither is the key that entered that mode.
 - **A mode exists only if some input behaves differently in it.**
   Overdue qualifies: `p` and `f` do nothing there. Sitting at `-59:59`
   does not, since every input behaves exactly as in Overdue; it is the
@@ -66,10 +72,10 @@ nothing, not a new rule.
   nothing changed, which makes the displayed time the new start time
   (SC-CONFIRM-UNCHANGED), and `00:00` is a valid draft; neither gets an
   exception.
-- **Editing freezes time.** Esc resumes from exactly where it froze,
-  sub-second included (INV-EDIT-ROUNDTRIP). Enter starts the new time
-  on a whole second, discarding the frozen remainder
-  (INV-CONFIRM-FRESH).
+- **Editing freezes time.** Leaving without Enter (Esc, `f`, or losing
+  focus) resumes from exactly where it froze, sub-second included
+  (INV-EDIT-ROUNDTRIP). Enter starts the new time on a whole second,
+  discarding the frozen remainder (INV-CONFIRM-FRESH).
 
 ## Architecture
 
@@ -159,7 +165,7 @@ nothing, not a new rule.
   the modifier rule below requires.
 - **Any modifier, Shift included, blocks a key, and key repeat is
   ignored** (SH-KEY-FILTER). Shortcuts like Cmd+P belong to the system,
-  and holding `p` must not toggle repeatedly. One rule covers every key
+  and holding `p` or `f` must not toggle repeatedly. One rule covers every key
   instead of per-key exceptions. Only keys that are dispatched have
   their default action prevented (SH-KEY-PREVENT).
 - **Losing focus while editing cancels the edit** (SH-BLUR,

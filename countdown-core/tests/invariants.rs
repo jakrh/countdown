@@ -61,7 +61,7 @@ fn digit() -> impl Strategy<Value = u8> {
 
 fn editor_input() -> impl Strategy<Value = Input> {
     input().prop_filter("not an editor exit", |i| {
-        !matches!(i, Confirm | Cancel | Blur)
+        !matches!(i, Edit | Confirm | Cancel | Blur)
     })
 }
 
@@ -263,7 +263,7 @@ proptest! {
         wait in 0..=MAX_JUMP,
         held in 0..=MAX_JUMP,
         inner in prop::collection::vec((editor_input(), 0..=1000i64), 0..=10),
-        exit in prop_oneof![Just(Cancel), Just(Blur)],
+        exit in prop_oneof![Just(Edit), Just(Cancel), Just(Blur)],
     ) {
         let mut inner = inner;
         inner.sort_by_key(|&(_, permille)| permille);

@@ -134,7 +134,7 @@ The mode is evaluated per F-MODE at the input's `now`. `—` is
 | Input | Running | Paused | Overdue | Editing |
 |---|---|---|---|---|
 | `Pause` | T-RUN-PAUSE | T-PAU-PAUSE | — | — |
-| `Edit` | T-RUN-EDIT | — | — | — |
+| `Edit` | T-RUN-EDIT | — | — | T-EDT-CANCEL |
 | `Click` | T-RESET | — | T-RESET | — |
 | `Digit(d)` | — | — | — | T-EDT-DIGIT |
 | `Left` | — | — | — | T-EDT-LEFT |
@@ -193,9 +193,9 @@ the last call. Property-test generators draw every time from
   `Pause` at `t2` yield `Running { deadline: deadline + (t2 - t1) }`.
 - **INV-EDIT-ROUNDTRIP**: if `m.phase` is `Running { deadline }` in
   `Mode::Running` at `t1` and `t2 ≥ t1`, then `Edit` at `t1`, followed
-  by any inputs other than `Confirm`, `Cancel` and `Blur` at
-  non-decreasing times in `[t1, t2]`, and finally `Cancel` or `Blur` at
-  `t2`, yield `Running { deadline: deadline + (t2 - t1) }` with
+  by any inputs other than `Edit`, `Confirm`, `Cancel` and `Blur` at
+  non-decreasing times in `[t1, t2]`, and finally `Edit`, `Cancel` or
+  `Blur` at `t2`, yield `Running { deadline: deadline + (t2 - t1) }` with
   `start_from_secs` unchanged.
 - **INV-CONFIRM-FRESH**: right after T-EDT-CONFIRM at `t` with value
   `n`, `r` at `t` is exactly `n * 1000`, whatever `remaining_ms` was.
