@@ -1,6 +1,6 @@
 [package]
 name = "countdown"
-version = "0.2.0-rc.1"
+version = "0.2.0-rc.2"
 description = "An always-on-top countdown timer"
 edition = "2024"
 
