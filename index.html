@@ -2,8 +2,16 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Countdown Timer</title>
+    <title>countdown</title>
     <link data-trunk rel="css" href="styles.css" />
-    </head>
-  <body></body>
+  </head>
+  <body>
+    <!-- Dragging uses the Tauri attribute on macOS and Linux, and
+         `-webkit-app-region` in styles.css on Windows (SH-DRAG). -->
+    <div id="container" data-tauri-drag-region="deep">
+      <!-- Must not start a drag: on macOS a drag swallows mouseup, so
+           the click would never fire. -->
+      <div id="time" data-tauri-drag-region="false"></div>
+    </div>
+  </body>
 </html>

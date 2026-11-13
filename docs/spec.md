@@ -436,8 +436,10 @@ step's time.
 - **SH-EDITOR**: in `ViewKind::Editor`, the time element is drawn inside
   a frame (`1px solid white` border, `rgba(0, 0, 0, 0.7)` background,
   `4px` radius) with the same font and position as the timer. The colon
-  is always shown. The text is `COLOR_NORMAL`. The digit at `cursor` is
-  an inverted block: background `COLOR_NORMAL`, text
+  is always shown. The text is `COLOR_NORMAL` with no shadow: the
+  frame's dark background already keeps it readable, and the SH-STYLE
+  shadow smears around the dark digit in the cursor block. The digit at
+  `cursor` is an inverted block: background `COLOR_NORMAL`, text
   `COLOR_CURSOR_TEXT`.
 - **SH-CURSOR-BLINK**: the inverted block blinks by a CSS animation that
   switches between inverted and normal every half of

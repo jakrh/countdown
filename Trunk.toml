@@ -1,5 +1,9 @@
 [build]
 target = "./index.html"
+# Replaces the wasm and JS preload links with nothing. The app's files are
+# local, so preloading gains nothing, and WebKit warned that the wasm
+# preload went unused.
+pattern_preload = ""
 
 [watch]
 ignore = ["./src-tauri"]

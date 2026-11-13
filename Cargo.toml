@@ -3,17 +3,27 @@ name = "countdown-ui"
 # Never published and nothing reads it; the app version lives in
 # src-tauri/Cargo.toml, which is what Tauri stamps into the bundle.
 version = "0.0.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-sycamore = { version = "0.9.4", features = ["suspense"] }
-wasm-bindgen = "0.2.130"
-wasm-bindgen-futures = "0.4.80"
-serde-wasm-bindgen = "0.6.5"
-serde = { version = "1.0.229", features = ["derive"] }
+countdown-core = { path = "countdown-core" }
 console_error_panic_hook = "0.1.7"
 gloo-timers = "0.4.0"
-web-sys = { version = "0.3.107", features = ["Window", "EventTarget", "KeyboardEvent", "HtmlInputElement", "Document", "Element", "HtmlElement", "InputEvent", "Storage", "Window"] }
+wasm-bindgen = "0.2.130"
+web-sys = { version = "0.3.107", features = [
+    "CssStyleDeclaration",
+    "Document",
+    "DomTokenList",
+    "Element",
+    "Event",
+    "EventTarget",
+    "HtmlElement",
+    "KeyboardEvent",
+    "MouseEvent",
+    "Performance",
+    "Storage",
+    "Window",
+] }
 
 [workspace]
 members = ["countdown-core", "src-tauri"]

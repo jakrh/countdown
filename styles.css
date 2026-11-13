@@ -1,85 +1,82 @@
-html, body {
-  /* Ensure the body fills the entire viewport and has a transparent background */
+/* Colors and blink periods are tunables defined in Rust; src/main.rs
+   publishes them as the custom properties used below. */
+
+html,
+body {
   height: 100%;
   margin: 0;
-  padding: 0;
-  background-color: transparent; /* Keep HTML/Body background transparent */
-  overflow: hidden; /* Prevent unnecessary scrollbars */
-  font-family: sans-serif;
+  overflow: hidden;
+  background: transparent;
 }
 
-/* Sycamore typically mounts to the body or a #app div; ensure the mount point fills the space */
-/* If your index.html has <div id=\"app\"></div>, use #app */
-/* If mounting directly to the body, this selector may not be necessary */
-#app, .sycamore-app-container /* Check your index.html or Sycamore mounting method */ {
-  height: 100%;
-  display: flex; /* Use flex to center the content */
-  justify-content: center;
-  align-items: center;
-}
-
-/* Input container styles */
-.input-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  -webkit-app-region: no-drag;
-}
-
-/* Timer input field styles */
-.timer-input {
-  font-size: 1.8em;
-  font-weight: bold;
-  font-family: 'Courier New', Courier, monospace;
-  background-color: rgba(0, 0, 0, 0.5);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 4px;
-  padding: 2px 8px;
-  text-align: center;
-  width: 80px;
-  outline: none;
-}
-
-.timer-input:focus {
-  border-color: white;
-  background-color: rgba(0, 0, 0, 0.7);
-}
-
-/* Styles for the timer container */
-.timer-container {
-  width: 100%;
+#container {
   height: 100%;
   display: flex;
-  justify-content: center; /* Center horizontally */
-  align-items: center;    /* Center vertically */
-  /* *** Set a semi-transparent black background with 20% opacity *** */
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 8px; /* (optional) Add rounded corners */
-  color: rgba(255, 255, 255, 0.8); /* Set text color to white for better contrast */
-  /* Chromium-only, so Windows: marks a non-client area, which also keeps the
-     native right-click window menu. Elsewhere data-tauri-drag-region drags. */
-  -webkit-app-region: drag;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
   -webkit-user-select: none;
   user-select: none;
-  position: relative;
-  z-index: 1;
+  /* Chromium only, so Windows: marks a non-client area, which also keeps
+     the native window menu (SH-CONTEXTMENU). */
+  -webkit-app-region: drag;
 }
 
-/* Styles for the timer text */
-.timer-display {
-  font-size: 1.8em; /* (adjustable) Larger font size */
-  font-weight: bold; /* Bold text */
-  font-family: 'Courier New', Courier, monospace; /* Monospace font to prevent number shifting */
+#time {
+  font: bold 1.8em 'Courier New', Courier, monospace;
+  color: var(--color-normal);
   text-shadow:
     0 0 5px black,
     0 0 5px black,
     0 0 5px black,
-    0 0 5px black; /* (optional) Add text shadow for readability */
-  margin: 0; /* Remove default paragraph margins */
+    0 0 5px black;
   -webkit-app-region: no-drag;
-  pointer-events: auto;
-  position: relative;
-  z-index: 2;
+}
+
+#time.clickable {
+  cursor: pointer;
+}
+
+#time.editor {
+  border: 1px solid white;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.7);
+  text-shadow: none;
+}
+
+.normal {
+  color: var(--color-normal);
+}
+
+.frozen {
+  color: var(--color-frozen);
+}
+
+/* Opacity, not visibility or display, so the hidden text stays
+   clickable. */
+.overdue {
+  color: var(--color-overdue);
+  animation: overdue-blink var(--overdue-blink-period) step-end infinite;
+}
+
+@keyframes overdue-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.cursor {
+  animation: cursor-blink var(--cursor-blink-period) step-end infinite;
+}
+
+@keyframes cursor-blink {
+  0% {
+    background: var(--color-normal);
+    color: var(--color-cursor-text);
+  }
+  50% {
+    background: transparent;
+    color: var(--color-normal);
+  }
 }
