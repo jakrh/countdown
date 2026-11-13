@@ -4,7 +4,22 @@ on:
   push:
     tags: ["v*"]
   pull_request:
+  # Tag and pull request runs ignore these and build every platform, so a
+  # release never misses one.
   workflow_dispatch:
+    inputs:
+      macos:
+        description: macOS (arm64)
+        type: boolean
+        default: true
+      windows:
+        description: Windows (x64)
+        type: boolean
+        default: true
+      linux:
+        description: Linux (x64)
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -18,7 +33,31 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.resolve.outputs.version }}
+      platforms: ${{ steps.platforms.outputs.platforms }}
     steps:
+      # The build matrix is computed because a static one cannot drop a
+      # platform: `include` runs after `exclude` and re-adds what it
+      # removed. Without inputs (tag and pull request runs) all are kept.
+      # An empty list is refused here, since an empty matrix fails with an
+      # opaque error.
+      - name: Choose platforms
+        id: platforms
+        env:
+          MACOS: ${{ github.event_name != 'workflow_dispatch' || inputs.macos }}
+          WINDOWS: ${{ github.event_name != 'workflow_dispatch' || inputs.windows }}
+          LINUX: ${{ github.event_name != 'workflow_dispatch' || inputs.linux }}
+        run: |
+          jq -rn --argjson macos "$MACOS" --argjson windows "$WINDOWS" --argjson linux "$LINUX" '
+            [
+              {label: "macos-arm64", os: "macos-15", target: "aarch64-apple-darwin", wanted: $macos},
+              {label: "windows-x64", os: "windows-2025", target: "x86_64-pc-windows-msvc", wanted: $windows},
+              {label: "linux-x64", os: "ubuntu-24.04", target: "x86_64-unknown-linux-gnu", wanted: $linux}
+            ]
+            | map(select(.wanted) | del(.wanted))
+            | if length == 0 then error("Select at least one platform") end
+            | "platforms=\(tojson)"
+          ' >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v7
 
       - name: Read version from Cargo.toml
@@ -48,16 +87,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - label: macos-arm64
-            os: macos-15
-            target: aarch64-apple-darwin
-          - label: windows-x64
-            os: windows-2025
-            target: x86_64-pc-windows-msvc
-          - label: linux-x64
-            os: ubuntu-24.04
-            target: x86_64-unknown-linux-gnu
+        include: ${{ fromJSON(needs.version.outputs.platforms) }}
     env:
       ARTIFACT: countdown-${{ needs.version.outputs.version }}-${{ matrix.label }}
     steps:
