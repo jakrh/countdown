@@ -71,6 +71,40 @@ nothing, not a new rule.
   on a whole second, discarding the frozen remainder
   (INV-CONFIRM-FRESH).
 
+## Architecture
+
+- **The dependency graph keeps the browser and Tauri out of the core**
+  (A-CORE-PURE, W-DEPENDENCIES). `countdown-core` holds every timer
+  rule. The frontend crate at the workspace root, the shell, depends on
+  it, and Trunk builds it into the page; `src-tauri` depends on
+  neither, so the native side carries no timer behavior. The graph, not
+  discipline, enforces this, and the core's tests run natively.
+- **Raw facts go in, effects come out.** The shell passes the core the
+  time, the raw stored string and each input; parsing storage and
+  deciding when to save are core logic too (P-LOAD,
+  INV-EFFECT-ONLY-CONFIRM). Rules are therefore tested in the core,
+  down to the overdue blink's onset. Manual testing is left with what
+  needs a real window: the `SH-` and `W-` items, drawing the blink
+  among them.
+- **The shell filters by the event, never by the model**
+  (SH-NO-MODE-LOGIC). Key repeat, modifiers, the mouse button and page
+  visibility are facts about the event. What each mode ignores is
+  already a core rule (T-NOOP); a check in the shell would be a second,
+  untested copy that could disagree with it, so the shell does not even
+  use `mode`.
+- **No UI framework** (A-NO-FRAMEWORK). Every render rebuilds the time
+  element's children, because both blinks must restart (see Timing
+  model), even when the text is unchanged, as after a rejected digit. A
+  framework's diffing exists to reuse unchanged nodes, so it would only
+  get in the way, and it would add dependencies to build and audit.
+- **A tunable lives in the core when the core's rules or tests use
+  it.** `OVERDUE_BLINK_PERIOD_MS` must divide a second so that each new
+  number starts lit. The core asserts this at compile time, and
+  INV-BLINK-ALIGNED, which can see only the core, tests it, so the
+  constant lives there although CSS does the animating. CSS cannot read
+  Rust constants, so the shell publishes the values CSS needs as custom
+  properties instead of repeating them.
+
 ## Timing model
 
 - **Remaining time is derived, never counted down.** The model stores a
@@ -80,9 +114,12 @@ nothing, not a new rule.
   drifted, and a throttled or occluded window fell behind. A window
   that becomes visible again renders at once (SH-VISIBLE), since its
   timers may have been throttled while hidden.
-- **Time is whole milliseconds.** The shell floors `performance.now()`
-  once per event (SH-CLOCK). Floating-point time made about one reset in
-  ten briefly show one second more than the start time.
+- **Time is read once per event, in whole milliseconds** (SH-CLOCK).
+  Floating-point time made about one reset in ten briefly show one
+  second more than the start time. A single read keeps `view` and
+  `next_wakeup` on the same second; a second boundary between rendering
+  and scheduling would leave the old number up for an extra second and
+  skip the next one.
 - **The display rounds up** (F-SEC). The start time shows for the whole
   first second, and `00:00` lasts one second before `-00:01`.
 - **Pause stores milliseconds.** Pausing and resuming neither gains nor
