@@ -172,10 +172,14 @@ nothing, not a new rule.
   When the timer goes overdue the user is usually in another app, and a
   single click should be enough.
 - **Mouse on the background:** dragging moves the window, a double
-  click does nothing because the window is not resizable, and the page
-  shows no context menu (SH-DRAG, W-CAPABILITIES, SH-CONTEXTMENU). On
-  Windows the native window menu still appears there on purpose: it is
-  the only mouse route to Move and Close on a borderless window.
+  click does nothing, and the page shows no context menu (SH-DRAG,
+  W-CAPABILITIES, SH-CONTEXTMENU). On macOS and Linux the double click
+  is a no-op because the window is not resizable. On Windows, WebView2
+  makes the `-webkit-app-region: drag` area the window's caption, where
+  a double click maximizes any window that allows it, so the window is
+  also not maximizable (W-WINDOW). The native window menu still appears
+  there on purpose: it is the only mouse route to Move and Close on a
+  borderless window.
 - **One window config for every platform** (W-ONE-CONFIG). Tauri
   replaces arrays wholesale when merging a platform config, so a
   macOS-only file had to repeat the whole window entry. The width is
@@ -189,7 +193,12 @@ nothing, not a new rule.
   what the system draws around the page, the Windows 11 border of the
   borderless window. The theme does reach the webview's
   `prefers-color-scheme`; the page is unaffected only because it
-  declares no `color-scheme` and never queries it.
+  declares no `color-scheme` and never queries it. `maximizable: false`
+  looks redundant next to `resizable: false`, and Tauri documents it as
+  ignored then, but on Windows tao sets the maximize style from it
+  alone; without it a double click on the background maximizes.
+  `minimizable: false` stays because on Windows a minimized window
+  would have no taskbar button or Alt+Tab entry to come back from.
 - **The old storage key is not migrated** (P-NO-MIGRATION). It was
   named for the remaining time but held the start time. A one-time
   fallback to the default start time is cheaper than carrying migration

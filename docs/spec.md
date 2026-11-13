@@ -475,8 +475,9 @@ step's time.
   settings: `title: "countdown"`, `center: true`, `width: 110`,
   `height: 52`, `acceptFirstMouse: true`, `transparent: true`,
   `decorations: false`, `alwaysOnTop: true`, `skipTaskbar: true`,
-  `resizable: false`, `theme: "Dark"`. Settings with no effect and
-  settings equal to Tauri's defaults are omitted.
+  `resizable: false`, `maximizable: false`, `minimizable: false`,
+  `theme: "Dark"`. Settings with no effect and settings equal to
+  Tauri's defaults are omitted.
 - **W-ONE-CONFIG**: there are no platform config files, and
   `dragDropEnabled` keeps its default.
 - **W-ACTIVATION**: on macOS, the app sets
