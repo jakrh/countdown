@@ -188,7 +188,9 @@ jobs:
   release:
     name: Publish release
     needs: [version, build]
-    if: startsWith(github.ref, 'refs/tags/v')
+    # A manual run started on a tag may build only some platforms, so only
+    # a tag push publishes.
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -200,6 +202,21 @@ jobs:
           path: artifacts
           merge-multiple: true
           skip-decompress: true
+
+      # An unzipped artifact is saved under the name the download server
+      # reports. Without one, every file would land as `artifact` and
+      # overwrite the others, and the release would get a single asset.
+      - name: Check asset names
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          ls -l artifacts
+          for f in artifacts/*; do
+            case "${f##*/}" in
+              "countdown-$VERSION-"*) ;;
+              *) echo "::error::Unexpected asset $f"; exit 1 ;;
+            esac
+          done
 
       - name: Write release notes
         env:
