@@ -46,25 +46,49 @@ One step is needed before the first launch:
 
 | | |
 | --- | --- |
-| `p` | Pause / resume |
-| `f` | Enter time-entry mode (pauses the countdown) |
-| `Enter` | Confirm the new time and restart |
-| `Esc` | Leave time-entry mode, changing nothing |
-| Click the time | Reset to the most recently set time |
+| `p` | Pause / resume (not after time runs out) |
+| `f` | Enter time-entry mode (not while paused or after time runs out; the countdown waits) |
+| Click the time | Reset to the most recently set time (not while paused) |
 | `Cmd`+`Q` | Quit (macOS) |
 | `Alt`+`F4` | Quit (Windows) |
 
-In time-entry mode, typing digits inserts the colon automatically.
-The range is `00:00`–`59:59`.
+The app's keys are matched by their position on the keyboard, so they
+work with Caps Lock or an input method on; with a modifier held, they
+do nothing.
+
+In time-entry mode:
+
+| | |
+| --- | --- |
+| `0`–`9` | Overwrite the digit at the cursor and move right |
+| `←` `→` | Move the cursor |
+| `Backspace` | Clear the digit at the cursor and move left |
+| `Enter` | Count down from the new time |
+| `f` or `Esc` | Leave time-entry mode, discarding the entry; the countdown continues where it stopped |
+
+Time entry works like setting a digital clock: four digit slots, where
+the tens digits of minutes and seconds accept only 0–5. The range is
+`00:00`–`59:59`. Switching to another app also leaves time-entry mode,
+as `Esc` does.
 
 ## Behaviour
 
-- At `00:00` the display blinks and keeps counting into negative time,
-  stopping at `-59:59`.
+- `00:00` lasts one second; then the digits turn red, blink, and keep
+  counting into negative time. The count stops at `-59:59`; the
+  blinking does not.
+- While paused, the digits freeze in cyan.
 - The most recently set time is remembered across restarts; the first
   run starts at 25:00.
 - There is no close button and no menu bar, so quitting is done from
-  the keyboard.
+  the keyboard. On Windows, right-clicking the background also opens
+  the window menu with Close.
+
+## Known issues
+
+- On Linux the window opens at the wrong size, does not stay on top of
+  other windows, and shows in the taskbar and `Alt`+`Tab`; the overdue
+  blinking can also be irregular. Pausing and time entry work
+  normally.
 
 ## Build from source
 
