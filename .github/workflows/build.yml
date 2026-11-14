@@ -73,8 +73,10 @@ jobs:
       # not match the release they are attached to.
       - name: Verify tag matches Cargo.toml
         if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          VERSION: ${{ steps.resolve.outputs.version }}
         run: |
-          expected="v${{ steps.resolve.outputs.version }}"
+          expected="v$VERSION"
           if [ "$GITHUB_REF_NAME" != "$expected" ]; then
             echo "::error::Tag $GITHUB_REF_NAME does not match src-tauri/Cargo.toml ($expected)"
             exit 1
