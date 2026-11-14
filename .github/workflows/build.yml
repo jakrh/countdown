@@ -33,6 +33,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.resolve.outputs.version }}
+      notes: ${{ steps.resolve.outputs.notes }}
       platforms: ${{ steps.platforms.outputs.platforms }}
     steps:
       # The build matrix is computed because a static one cannot drop a
@@ -66,6 +67,7 @@ jobs:
           version=$(cargo metadata --format-version 1 --no-deps \
             | jq -er '.packages[] | select(.name == "countdown") | .version')
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "notes=docs/releases/$version.md" >> "$GITHUB_OUTPUT"
           echo "Resolved app version: $version"
 
       # src-tauri/Cargo.toml is the single source of truth, so a tag that
@@ -79,6 +81,18 @@ jobs:
           expected="v$VERSION"
           if [ "$GITHUB_REF_NAME" != "$expected" ]; then
             echo "::error::Tag $GITHUB_REF_NAME does not match src-tauri/Cargo.toml ($expected)"
+            exit 1
+          fi
+
+      # Release notes are committed so they are reviewed like the code they
+      # describe. A tag without them fails here rather than after the builds.
+      - name: Verify release notes exist
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          NOTES: ${{ steps.resolve.outputs.notes }}
+        run: |
+          if [ ! -s "$NOTES" ]; then
+            echo "::error::Missing or empty $NOTES"
             exit 1
           fi
 
@@ -197,6 +211,12 @@ jobs:
     permissions:
       contents: write
     steps:
+      # gh authenticates with GH_TOKEN, so the job's write token need not
+      # be left in the checkout's git config.
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
       # Without skip-decompress, the zips uploaded as is would be unpacked
       # here, since the action detects a zip by its content type.
       - uses: actions/download-artifact@v8
@@ -220,11 +240,13 @@ jobs:
             esac
           done
 
-      - name: Write release notes
+      - name: Write release body
         env:
           VERSION: ${{ needs.version.outputs.version }}
+          NOTES: ${{ needs.version.outputs.notes }}
         run: |
-          cat > notes.md <<EOF
+          { cat "$NOTES"; printf '\n\n---\n\n'; } > body.md
+          cat >> body.md <<EOF
           ## Downloads
 
           | Platform | File |
@@ -262,5 +284,5 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             --repo "$GITHUB_REPOSITORY" \
             --title "$GITHUB_REF_NAME" \
-            --notes-file notes.md \
+            --notes-file body.md \
             artifacts/*
